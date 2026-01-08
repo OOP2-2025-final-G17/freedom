@@ -40,20 +40,6 @@ class ChangeWindow(tk.Toplevel):
             mode_frame, text="その他(NULL)", value="NULL", variable=self.mode_var
         ).pack(side=tk.LEFT, padx=6)
 
-        # Schedule ID (optional for update)
-        id_frame = ttk.Frame(container)
-        id_frame.pack(fill=tk.X, pady=4)
-        ttk.Label(id_frame, text="スケジュールID(変更時)", width=20).pack(side=tk.LEFT)
-        self.schedule_id = ttk.Entry(id_frame)
-        self.schedule_id.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Category ID (could be provided by backend for mode A/B)
-        cat_frame = ttk.Frame(container)
-        cat_frame.pack(fill=tk.X, pady=4)
-        ttk.Label(cat_frame, text="カテゴリID(任意)", width=20).pack(side=tk.LEFT)
-        self.category_id = ttk.Entry(cat_frame)
-        self.category_id.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
         # Name
         name_frame = ttk.Frame(container)
         name_frame.pack(fill=tk.X, pady=4)
@@ -106,8 +92,6 @@ class ChangeWindow(tk.Toplevel):
         payload = {
             "action": "save_schedule",
             "mode": mode,
-            "scheduleId": self.schedule_id.get().strip() or None,
-            "categoryId": self.category_id.get().strip() or None,
             "name": self.name_entry.get().strip(),
             "start_date": self.start_date.get().strip(),
             "start_time": self.start_time.get().strip(),
