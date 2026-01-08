@@ -60,26 +60,31 @@ class JsonRequestWatcherTk:
         )
 
     def _process_request(self) -> None:
-        payload = self._read_json_safely()
+        try:
+            payload = self._read_json_safely()
 
-        if isinstance(payload, dict) and payload.get("__parse_error__"):
+            if isinstance(payload, dict) and payload.get("__parse_error__"):
+                self._write_response({
+                    "ok": False,
+                    "action": "unknown",
+                    "error": {"code": "BAD_REQUEST", "message": "invalid json"}
+                })
+                return
+
+            if not isinstance(payload, dict) or "action" not in payload:
+                return  # 保存途中は無視（ここは好み）
+
+            result = handle_request(payload)
+            self._write_response(result)
+
+        except Exception as e:
+            # ★ここが重要：どんな例外でも response.json に出す
             self._write_response({
                 "ok": False,
                 "action": "unknown",
-                "error": {"code": "BAD_REQUEST", "message": "invalid json"}
+                "error": {"code": "EXCEPTION", "message": str(e)}
             })
-            return
 
-        if not isinstance(payload, dict) or "action" not in payload:
-            self._write_response({
-                "ok": False,
-                "action": "unknown",
-                "error": {"code": "BAD_REQUEST", "message": "action is required"}
-            })
-            return
-
-        result = handle_request(payload)
-        self._write_response(result)
 
     def _tick(self) -> None:
         mtime = self._get_mtime()
