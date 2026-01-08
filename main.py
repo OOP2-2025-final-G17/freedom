@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from back_end.db.init import initialize_database 
 
 
 def run_app() -> None:
@@ -12,6 +13,7 @@ def run_app() -> None:
         print("front_end/ 配下のファイルが存在するか確認してください。")
         return
 
+    initialize_database()
     root = tk.Tk()
     root.title("Freedom - Todo/カレンダー/シフト管理")
     root.geometry("1100x700")
