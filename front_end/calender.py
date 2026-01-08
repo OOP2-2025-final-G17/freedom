@@ -40,6 +40,7 @@ class CalendarWindow(tk.Frame):
         self.year = tk.IntVar(value=today.year)
         self.month = tk.IntVar(value=today.month)
         self.selected_date: dt.date | None = None
+        self.current_items: list[dict] = []
 
         control = ttk.Frame(self)
         control.pack(fill=tk.X, padx=10, pady=8)
@@ -69,7 +70,37 @@ class CalendarWindow(tk.Frame):
             action_frame, text="この日の予定を取得", command=self.request_day
         ).pack(side=tk.RIGHT)
 
-        self.result = tk.Text(self, height=10)
+        # 予定リストと操作ボタン
+        list_frame = ttk.LabelFrame(self, text="予定一覧（選択して操作）")
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        self.tree = ttk.Treeview(
+            list_frame,
+            columns=("mode", "name", "start", "end"),
+            show="headings",
+            height=8,
+        )
+        self.tree.heading("mode", text="モード")
+        self.tree.heading("name", text="タイトル")
+        self.tree.heading("start", text="開始")
+        self.tree.heading("end", text="終了")
+        self.tree.column("mode", width=60, anchor="center")
+        self.tree.column("name", width=160, anchor="w")
+        self.tree.column("start", width=140, anchor="center")
+        self.tree.column("end", width=140, anchor="center")
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=4, pady=(4, 6))
+
+        op_frame = ttk.Frame(list_frame)
+        op_frame.pack(fill=tk.X)
+        ttk.Button(op_frame, text="選択を削除", command=self.delete_selected).pack(
+            side=tk.LEFT, padx=4
+        )
+        ttk.Button(op_frame, text="選択を更新", command=self.update_selected).pack(
+            side=tk.LEFT, padx=4
+        )
+
+        # 取得結果のメッセージ表示
+        self.result = tk.Text(self, height=6)
         self.result.pack(fill=tk.BOTH, expand=False, padx=10, pady=6)
 
         self.draw_calendar()
@@ -136,6 +167,13 @@ class CalendarWindow(tk.Frame):
     def request_day(self) -> None:
         if not self.selected_date:
             messagebox.showinfo("情報", "日付を選択してください。")
+            # 既存の request.json があれば本操作では生成しないため削除
+            req_path, _ = _paths()
+            try:
+                if os.path.exists(req_path):
+                    os.remove(req_path)
+            except Exception:
+                pass
             return
 
         payload = {
@@ -156,18 +194,69 @@ class CalendarWindow(tk.Frame):
             and resp.get("date") == self.selected_date.isoformat()
         ):
             items = resp.get("schedules", [])
+            # ツリー更新
+            self.tree.delete(*self.tree.get_children())
+            self.current_items = []
             if not items:
                 self.result.insert(tk.END, "この日の予定はありません。\n")
             else:
-                for i, sc in enumerate(items, 1):
-                    line = (
-                        f"[{i}] モード:{sc.get('mode','-')} "
-                        f"{sc.get('name','')} {sc.get('start_date','')} {sc.get('start_time','')} -> "
-                        f"{sc.get('end_date','')} {sc.get('end_time','')}\n"
-                    )
-                    self.result.insert(tk.END, line)
+                for sc in items:
+                    mode = sc.get("mode", "-")
+                    name = sc.get("name", "")
+                    start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
+                    end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
+                    self.tree.insert("", tk.END, values=(mode, name, start, end))
+                    self.current_items.append(sc)
         else:
             self.result.insert(tk.END, "（response.json が存在しないか、対象外です）\n")
+
+    def _get_selection_index(self) -> int | None:
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo("情報", "予定を1件選択してください。")
+            return None
+        item_id = sel[0]
+        # 表示順 == current_items の順
+        index = self.tree.index(item_id)
+        if index is None or index < 0 or index >= len(self.current_items):
+            messagebox.showwarning("エラー", "選択中のアイテムを特定できません。")
+            return None
+        return index
+
+    def delete_selected(self) -> None:
+        if not self.selected_date:
+            messagebox.showinfo("情報", "日付を選択してください。")
+            return
+        idx = self._get_selection_index()
+        if idx is None:
+            return
+        target = self.current_items[idx]
+        payload = {
+            "action": "delete_schedule",
+            "date": self.selected_date.isoformat(),
+            "schedule": target,
+        }
+        write_request(payload)
+        self.result.delete("1.0", tk.END)
+        self.result.insert(tk.END, "削除リクエストを送信しました。\n")
+
+    def update_selected(self) -> None:
+        if not self.selected_date:
+            messagebox.showinfo("情報", "日付を選択してください。")
+            return
+        idx = self._get_selection_index()
+        if idx is None:
+            return
+        target = self.current_items[idx]
+        # 変更ウィンドウを既存値で開く
+        try:
+            from .change import ChangeWindow
+        except Exception:
+            from change import ChangeWindow  # type: ignore
+
+        ChangeWindow(self.winfo_toplevel(), existing_schedule=target)
+        self.result.delete("1.0", tk.END)
+        self.result.insert(tk.END, "更新ダイアログを開きました。\n")
 
 
 if __name__ == "__main__":
