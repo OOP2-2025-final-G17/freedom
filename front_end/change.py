@@ -10,11 +10,38 @@ def _request_path() -> str:
     return os.path.join(base, "json", "request.json")
 
 
+def _id_path() -> str:
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, "json", "task_id.json")
+
+
 def write_request(payload: dict) -> None:
     path = _request_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def get_next_task_id() -> int:
+    """タスク用の自動採番IDを返す。json/task_id.json に保存。"""
+    path = _id_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    last = 0
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                last = int(data.get("last_id", 0))
+        except Exception:
+            last = 0
+    next_id = last + 1
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"last_id": next_id}, f, ensure_ascii=False, indent=2)
+    except Exception:
+        # 書き込み失敗でもIDは返す
+        pass
+    return next_id
 
 
 class ChangeWindow(tk.Toplevel):
@@ -164,6 +191,8 @@ class ChangeWindow(tk.Toplevel):
                 "action": "update_schedule",
                 "original": self._existing,
                 "new": {
+                    # 既存IDがあれば引き継ぐ
+                    "id": self._existing.get("id"),
                     "mode": mode,
                     "name": name,
                     "start_date": start_date_str,
@@ -174,7 +203,7 @@ class ChangeWindow(tk.Toplevel):
             }
         else:
             payload = {
-                "action": "save_schedule",
+                "action": "add_schedule",
                 "mode": mode,
                 "name": name,
                 "start_date": start_date_str,

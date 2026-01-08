@@ -231,10 +231,16 @@ class CalendarWindow(tk.Frame):
         if idx is None:
             return
         target = self.current_items[idx]
+        sid = target.get("id")
+        if sid is None:
+            messagebox.showwarning(
+                "エラー", "この予定にはIDがありません。削除にはIDが必要です。"
+            )
+            return
+        # DBが付与した一意IDを使って削除
         payload = {
             "action": "delete_schedule",
-            "date": self.selected_date.isoformat(),
-            "schedule": target,
+            "schedule_id": sid,
         }
         write_request(payload)
         self.result.delete("1.0", tk.END)

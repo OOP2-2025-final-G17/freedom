@@ -1,12 +1,10 @@
 {
-  "action": "delete_schedule",
-  "date": "2026-01-08",
-  "schedule": {
-    "mode": "NULL",
-    "name": "友達と夕食",
-    "start_date": "2026-01-08",
-    "start_time": "19:00",
-    "end_date": "2026-01-08",
-    "end_time": "21:00"
-  }
+  "action": "save_schedule",
+  "id": 1,
+  "mode": "A",
+  "name": "てst",
+  "start_date": "2026-01-08",
+  "start_time": "09:00",
+  "end_date": "2026-01-08",
+  "end_time": "18:00"
 }
