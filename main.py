@@ -1,9 +1,12 @@
 import tkinter as tk
-from tkinter import ttk
-from back_end.db.init import initialize_database 
+
+from back_end.db.init import initialize_database
+from watcher_tk import JsonRequestWatcherTk
+
 
 
 def run_app() -> None:
+    
     """Launch the Tkinter GUI with calendar on left and menu on right."""
     try:
         from front_end.calender import CalendarWindow
@@ -17,6 +20,7 @@ def run_app() -> None:
     root = tk.Tk()
     root.title("Freedom - Todo/カレンダー/シフト管理")
     root.geometry("1100x700")
+    watcher = JsonRequestWatcherTk(root)
 
     # メインコンテナ
     main_container = tk.Frame(root)
