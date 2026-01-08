@@ -2,22 +2,16 @@ import tkinter as tk
 from tkinter import ttk
 
 
-class MainMenu:
-    def __init__(self, root: tk.Tk) -> None:
-        self.root = root
-        self.root.title("Freedom フロントエンド")
-        self.root.geometry("360x240")
+class MainMenu(tk.Frame):
+    def __init__(self, parent: tk.Misc) -> None:
+        super().__init__(parent)
+        self.pack(fill=tk.BOTH, expand=True)
 
-        title = ttk.Label(self.root, text="メニュー", font=("Helvetica", 16, "bold"))
+        title = ttk.Label(self, text="メニュー", font=("Helvetica", 16, "bold"))
         title.pack(pady=12)
 
-        btn_frame = ttk.Frame(self.root)
+        btn_frame = ttk.Frame(self)
         btn_frame.pack(pady=6, fill=tk.X, padx=20)
-
-        self.btn_calendar = ttk.Button(
-            btn_frame, text="カレンダー", command=self.open_calendar
-        )
-        self.btn_calendar.pack(fill=tk.X, pady=4)
 
         self.btn_change = ttk.Button(
             btn_frame, text="予定の追加/変更", command=self.open_change
@@ -30,18 +24,8 @@ class MainMenu:
         self.btn_money.pack(fill=tk.X, pady=4)
 
         self.status_var = tk.StringVar(value="準備完了。操作を選んでください。")
-        status = ttk.Label(self.root, textvariable=self.status_var, foreground="#555")
+        status = ttk.Label(self, textvariable=self.status_var, foreground="#555")
         status.pack(side=tk.BOTTOM, anchor=tk.W, padx=8, pady=6)
-
-    def open_calendar(self) -> None:
-        try:
-            from .calender import CalendarWindow
-        except Exception:
-            # 相対importが失敗する場合に備えて直接import
-            from calender import CalendarWindow  # type: ignore
-
-        CalendarWindow(self.root)
-        self.status_var.set("カレンダーを開きました。")
 
     def open_change(self) -> None:
         try:
@@ -49,7 +33,7 @@ class MainMenu:
         except Exception:
             from change import ChangeWindow  # type: ignore
 
-        ChangeWindow(self.root)
+        ChangeWindow(self.winfo_toplevel())
         self.status_var.set("予定の追加/変更を開きました。")
 
     def open_money(self) -> None:
@@ -58,7 +42,7 @@ class MainMenu:
         except Exception:
             from money import MoneyWindow  # type: ignore
 
-        MoneyWindow(self.root)
+        MoneyWindow(self.winfo_toplevel())
         self.status_var.set("給料（支出）モードを開きました。")
 
 
