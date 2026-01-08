@@ -1,5 +1,4 @@
 {
-  "action": "calc_wage",
-  "year": 2026,
-  "month": 1
+  "action": "get_schedule",
+  "date": "2026-01-09"
 }
