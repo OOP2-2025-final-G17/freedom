@@ -90,7 +90,7 @@ class ChangeWindow(tk.Toplevel):
     def submit(self) -> None:
         mode = self.mode_var.get()
         payload = {
-            "action": "save_schedule",
+            "action": "add_schedule",
             "mode": mode,
             "name": self.name_entry.get().strip(),
             "start_date": self.start_date.get().strip(),
