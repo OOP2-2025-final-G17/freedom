@@ -55,20 +55,28 @@ class JsonRequestWatcherTk:
 
     def _write_response(self, data: dict) -> None:
         RESPONSE_PATH.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8"
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
     def _process_request(self) -> None:
         try:
+            # 処理開始時に古いレスポンスを削除
+            try:
+                if RESPONSE_PATH.exists():
+                    RESPONSE_PATH.unlink()
+            except Exception:
+                pass
+
             payload = self._read_json_safely()
 
             if isinstance(payload, dict) and payload.get("__parse_error__"):
-                self._write_response({
-                    "ok": False,
-                    "action": "unknown",
-                    "error": {"code": "BAD_REQUEST", "message": "invalid json"}
-                })
+                self._write_response(
+                    {
+                        "ok": False,
+                        "action": "unknown",
+                        "error": {"code": "BAD_REQUEST", "message": "invalid json"},
+                    }
+                )
                 return
 
             if not isinstance(payload, dict) or "action" not in payload:
@@ -79,12 +87,13 @@ class JsonRequestWatcherTk:
 
         except Exception as e:
             # ★ここが重要：どんな例外でも response.json に出す
-            self._write_response({
-                "ok": False,
-                "action": "unknown",
-                "error": {"code": "EXCEPTION", "message": str(e)}
-            })
-
+            self._write_response(
+                {
+                    "ok": False,
+                    "action": "unknown",
+                    "error": {"code": "EXCEPTION", "message": str(e)},
+                }
+            )
 
     def _tick(self) -> None:
         mtime = self._get_mtime()

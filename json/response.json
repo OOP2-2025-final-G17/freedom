@@ -2,15 +2,33 @@
   "ok": true,
   "action": "get_schedule",
   "data": {
-    "date": "2026-01-08",
+    "date": "2026-01-15",
     "schedules": [
       {
-        "id": 1,
+        "id": 2,
         "mode": "A",
-        "name": "f",
-        "start_date": "2026-01-08",
+        "name": "test2",
+        "start_date": "2026-01-15",
         "start_time": "09:00",
-        "end_date": "2026-01-08",
+        "end_date": "2026-01-15",
+        "end_time": "18:00"
+      },
+      {
+        "id": 5,
+        "mode": "A",
+        "name": "test1",
+        "start_date": "2026-01-15",
+        "start_time": "09:00",
+        "end_date": "2026-01-15",
+        "end_time": "18:00"
+      },
+      {
+        "id": 6,
+        "mode": "A",
+        "name": "test5",
+        "start_date": "2026-01-15",
+        "start_time": "09:00",
+        "end_date": "2026-01-15",
         "end_time": "18:00"
       }
     ]

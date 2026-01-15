@@ -4,6 +4,7 @@ import datetime as dt
 import calendar as pycal
 import tkinter as tk
 from tkinter import ttk, messagebox
+import time
 
 
 def _paths():
@@ -16,6 +17,7 @@ def _paths():
 def write_request(payload: dict) -> None:
     req, _ = _paths()
     os.makedirs(os.path.dirname(req), exist_ok=True)
+
     with open(req, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
@@ -29,6 +31,43 @@ def try_read_response() -> dict | None:
             return json.load(f)
     except Exception:
         return None
+
+
+def wait_for_response(expected_action: str, timeout: float = 10.0) -> dict | None:
+    """レスポンスファイルが作成されて期待するアクションが返されるまで待機する"""
+    _, res = _paths()
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        # ファイルが存在するかチェック
+        if not os.path.exists(res):
+            time.sleep(0.2)
+            continue
+
+        try:
+            time.sleep(0.1)  # ファイル書き込み完了を待つ
+            with open(res, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:  # 空ファイルの場合はスキップ
+                    time.sleep(0.2)
+                    continue
+
+                resp = json.loads(content)
+                action = resp.get("action")
+
+                # 期待されるアクションのレスポンスか確認
+                if action == expected_action:
+                    return resp
+                else:
+                    # 異なるアクションの場合は無視して待機を続ける
+                    time.sleep(0.2)
+
+        except (json.JSONDecodeError, IOError):
+            # JSONパースエラーまたはファイル読み込みエラーは無視して再試行
+            time.sleep(0.2)
+            continue
+
+    return None
 
 
 class CalendarWindow(tk.Frame):
@@ -167,13 +206,6 @@ class CalendarWindow(tk.Frame):
     def request_day(self) -> None:
         if not self.selected_date:
             messagebox.showinfo("情報", "日付を選択してください。")
-            # 既存の request.json があれば本操作では生成しないため削除
-            req_path, _ = _paths()
-            try:
-                if os.path.exists(req_path):
-                    os.remove(req_path)
-            except Exception:
-                pass
             return
 
         payload = {
@@ -186,29 +218,44 @@ class CalendarWindow(tk.Frame):
             tk.END, "リクエストを送信しました。バックエンドの応答を待機します…\n"
         )
 
-        # 応答があれば表示（任意・存在すれば）
-        resp = try_read_response()
-        if (
-            resp
-            and resp.get("action") == "get_schedule_result"
-            and resp.get("date") == self.selected_date.isoformat()
-        ):
-            items = resp.get("schedules", [])
-            # ツリー更新
-            self.tree.delete(*self.tree.get_children())
-            self.current_items = []
-            if not items:
-                self.result.insert(tk.END, "この日の予定はありません。\n")
+        # 更新を強制的に画面に反映
+        self.update_idletasks()
+
+        # レスポンスが返ってくるまで待機（タイムアウト5秒）
+        resp = wait_for_response("get_schedule", timeout=5.0)
+
+        # ツリー更新
+        self.tree.delete(*self.tree.get_children())
+        self.current_items = []
+
+        if resp and resp.get("ok") is True:
+            data = resp.get("data", {})
+            if data.get("date") == self.selected_date.isoformat():
+                items = data.get("schedules", [])
+                if not items:
+                    self.result.insert(tk.END, "この日の予定はありません。\n")
+                else:
+                    for sc in items:
+                        mode = sc.get("mode", "-")
+                        name = sc.get("name", "")
+                        start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
+                        end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
+                        self.tree.insert("", tk.END, values=(mode, name, start, end))
+                        self.current_items.append(sc)
+                    self.result.insert(
+                        tk.END, f"{len(items)}件の予定を取得しました。\n"
+                    )
             else:
-                for sc in items:
-                    mode = sc.get("mode", "-")
-                    name = sc.get("name", "")
-                    start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
-                    end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
-                    self.tree.insert("", tk.END, values=(mode, name, start, end))
-                    self.current_items.append(sc)
+                self.result.insert(tk.END, "日付が一致しません。\n")
+        elif resp and resp.get("ok") is False:
+            error = resp.get("error", {})
+            self.result.insert(
+                tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
+            )
         else:
-            self.result.insert(tk.END, "（response.json が存在しないか、対象外です）\n")
+            self.result.insert(
+                tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
+            )
 
     def _get_selection_index(self) -> int | None:
         sel = self.tree.selection()
@@ -240,7 +287,7 @@ class CalendarWindow(tk.Frame):
         # DBが付与した一意IDを使って削除
         payload = {
             "action": "delete_schedule",
-            "schedule_id": sid,
+            "id": sid,
         }
         write_request(payload)
         self.result.delete("1.0", tk.END)

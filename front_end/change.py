@@ -189,17 +189,14 @@ class ChangeWindow(tk.Toplevel):
         if self._existing is not None:
             payload = {
                 "action": "update_schedule",
-                "original": self._existing,
-                "new": {
-                    # 既存IDがあれば引き継ぐ
-                    "id": self._existing.get("id"),
-                    "mode": mode,
-                    "name": name,
-                    "start_date": start_date_str,
-                    "start_time": start_time_str,
-                    "end_date": end_date_str,
-                    "end_time": end_time_str,
-                },
+                # 既存IDがあれば引き継ぐ
+                "id": self._existing.get("id"),
+                "mode": mode,
+                "name": name,
+                "start_date": start_date_str,
+                "start_time": start_time_str,
+                "end_date": end_date_str,
+                "end_time": end_time_str,
             }
         else:
             payload = {
