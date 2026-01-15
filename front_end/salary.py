@@ -36,3 +36,9 @@ class SalaryWindow(tk.Toplevel):
     def calc_total(self):
         total = sum(s['hours'] * s['wage'] for s in self.salaries)
         messagebox.showinfo("合計給与", f"全員分の合計給与：{total:.0f}円")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()          # ルートの空ウィンドウを消す（必要なら外してOK）
+    SalaryWindow(root)       # これを呼ばないと画面は出ない
+    root.mainloop()
