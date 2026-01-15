@@ -195,5 +195,7 @@ def handle_request(payload: dict) -> dict:
         return delete_schedule(payload)
     if action == "update_schedule":
         return update_schedule(payload)
+    if action == "get_monthly_schedule_by_mode":
+        return get_monthly_schedule_by_mode(payload)
 
     return ng(action or "unknown", "BAD_REQUEST", "unsupported action")
