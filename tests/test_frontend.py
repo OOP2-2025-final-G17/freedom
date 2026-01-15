@@ -63,7 +63,6 @@ class FrontendTestCase(unittest.TestCase):
 
         menu = MainMenu(self.root)
         # 各ボタンのコールバック呼び出し（ウィンドウ生成）
-        menu.open_calendar()
         menu.open_change()
         menu.open_money()
         # ステータス文言が更新されているか
@@ -94,8 +93,6 @@ class FrontendTestCase(unittest.TestCase):
         ch = ChangeWindow(self.root)
         # 入力値設定
         ch.mode_var.set("A")
-        ch.schedule_id.insert(0, "")
-        ch.category_id.insert(0, "")
         ch.name_entry.insert(0, "講義A")
         ch.start_date.delete(0, "end")
         ch.start_date.insert(0, "2026-01-08")
