@@ -36,14 +36,9 @@ class MainMenu(tk.Frame):
         ChangeWindow(self.winfo_toplevel())
         self.status_var.set("予定の追加/変更を開きました。")
 
-    def open_money(self) -> None:
-        try:
-            from .money import MoneyWindow
-        except Exception:
-            from money import MoneyWindow  # type: ignore
-
-        MoneyWindow(self.winfo_toplevel())
-        self.status_var.set("給料（支出）モードを開きました。")
+    def open_money(self):
+        from front_end.salary import SalaryWindow
+        SalaryWindow(self.master)
 
 
 def main() -> None:
