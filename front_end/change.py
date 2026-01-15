@@ -3,6 +3,8 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date, datetime
+import uuid
+import time
 
 
 def _request_path() -> str:
@@ -10,16 +12,39 @@ def _request_path() -> str:
     return os.path.join(base, "json", "request.json")
 
 
+def _response_path() -> str:
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, "json", "response.json")
+
+
 def _id_path() -> str:
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base, "json", "task_id.json")
 
 
-def write_request(payload: dict) -> None:
+def write_request(payload: dict) -> str:
+    """リクエストを送信し、リクエストIDを返す"""
     path = _request_path()
+    res_path = _response_path()
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    # リクエスト送信前に古いレスポンスを削除
+    try:
+        if os.path.exists(res_path):
+            os.remove(res_path)
+        time.sleep(0.2)
+    except Exception:
+        pass
+
+    # リクエストに一意のIDをつける
+    request_id = str(uuid.uuid4())
+    payload["_request_id"] = request_id
+
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    return request_id
 
 
 def get_next_task_id() -> int:
