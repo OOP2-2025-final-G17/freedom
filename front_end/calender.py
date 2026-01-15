@@ -15,9 +15,15 @@ def _paths():
 
 
 def write_request(payload: dict) -> None:
-    req, _ = _paths()
+    req, res = _paths()
+    
+    # response.json を初期化
+    os.makedirs(os.path.dirname(res), exist_ok=True)
+    with open(res, "w", encoding="utf-8") as f:
+        f.write("")
+    
+    # request.json にペイロード書き込み
     os.makedirs(os.path.dirname(req), exist_ok=True)
-
     with open(req, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
@@ -33,7 +39,7 @@ def try_read_response() -> dict | None:
         return None
 
 
-def wait_for_response(expected_action: str, timeout: float = 10.0) -> dict | None:
+def wait_for_response(expected_action: str, timeout: float = 30.0) -> dict | None:
     """レスポンスファイルが作成されて期待するアクションが返されるまで待機する"""
     _, res = _paths()
     start_time = time.time()
