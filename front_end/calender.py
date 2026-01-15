@@ -18,6 +18,7 @@ def _paths():
     return req, res
 
 
+<<<<<<< HEAD
 def write_request(payload: dict) -> str:
     """リクエストを送信し、リクエストIDを返す"""
     req, res = _paths()
@@ -35,6 +36,18 @@ def write_request(payload: dict) -> str:
     request_id = str(uuid.uuid4())
     payload["_request_id"] = request_id
 
+=======
+def write_request(payload: dict) -> None:
+    req, res = _paths()
+    
+    # response.json を初期化
+    os.makedirs(os.path.dirname(res), exist_ok=True)
+    with open(res, "w", encoding="utf-8") as f:
+        f.write("")
+    
+    # request.json にペイロード書き込み
+    os.makedirs(os.path.dirname(req), exist_ok=True)
+>>>>>>> 049d2a18d56fff41f356fbeae46250f3f390dcce
     with open(req, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     
@@ -52,6 +65,7 @@ def try_read_response() -> dict | None:
         return None
 
 
+<<<<<<< HEAD
 def wait_for_response(
     expected_action: str, expected_request_id: str, expected_data_validator=None, timeout: float = 10.0, root=None
 ) -> dict | None:
@@ -59,6 +73,10 @@ def wait_for_response(
     import sys
     from datetime import datetime
     
+=======
+def wait_for_response(expected_action: str, timeout: float = 30.0) -> dict | None:
+    """レスポンスファイルが作成されて期待するアクションが返されるまで待機する"""
+>>>>>>> 049d2a18d56fff41f356fbeae46250f3f390dcce
     _, res = _paths()
     start_time = time.time()
     print(f"[{datetime.now()}] wait_for_response started: action={expected_action}, request_id={expected_request_id}", file=sys.stderr, flush=True)
