@@ -10,13 +10,11 @@ import uuid
 # デバッグモード（False にするとログが出ない）
 DEBUG = False
 
-
 def _paths():
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     req = os.path.join(base, "json", "request.json")
     res = os.path.join(base, "json", "response.json")
     return req, res
-
 
 def write_request(payload: dict) -> str:
     """リクエストを送信し、リクエストIDを返す"""
@@ -165,6 +163,17 @@ class CalendarWindow(tk.Frame):
         self.year = tk.IntVar(value=today.year)
         self.month = tk.IntVar(value=today.month)
         self.selected_date: dt.date | None = None
+        self.selected_button: tk.Widget | None = None  # 追加：選択中のボタンを追跡
+
+        # カスタムスタイルの設定（修正）
+        style = ttk.Style()
+        style.configure("Today.TButton", background="#ffffcc")  # 今日の日付用（薄い黄色）
+        style.configure("Selected.TButton", background="#ccccff")  # 選択日付用（薄い青色）
+        # 追加：土曜日・日曜日用のスタイル
+        style.configure("Saturday.TButton", foreground="blue")
+        style.configure("Sunday.TButton", foreground="red")
+        style.configure("Saturday.TLabel", foreground="blue")
+        style.configure("Sunday.TLabel", foreground="red")
         self.current_items: list[dict] = []
 
         control = ttk.Frame(self)
@@ -172,6 +181,12 @@ class CalendarWindow(tk.Frame):
 
         prev_btn = ttk.Button(control, text="<", width=3, command=self.prev_month)
         prev_btn.pack(side=tk.LEFT)
+
+        # 追加：「今日」ボタン
+        today_btn = ttk.Button(
+            control, text="今日", width=4, command=self.go_to_today
+        )
+        today_btn.pack(side=tk.LEFT, padx=5)
 
         self.title_var = tk.StringVar()
         title_lbl = ttk.Label(
@@ -195,6 +210,7 @@ class CalendarWindow(tk.Frame):
             action_frame, text="この日の予定を取得", command=self.request_day
         ).pack(side=tk.RIGHT)
 
+        # self.result = tk.Text(self, height=10)
         # 予定リストと操作ボタン
         list_frame = ttk.LabelFrame(self, text="予定一覧（選択して操作）")
         list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
@@ -241,23 +257,64 @@ class CalendarWindow(tk.Frame):
         # 曜日ヘッダ
         weekdays = ["月", "火", "水", "木", "金", "土", "日"]
         for i, wd in enumerate(weekdays):
-            ttk.Label(self.grid_frame, text=wd, anchor="center").grid(
-                row=0, column=i, sticky="nsew"
-            )
+            # 土曜日と日曜日の色分け（修正）
+            if i == 5:  # 土曜日
+                label = ttk.Label(self.grid_frame, text=wd, anchor="center", style="Saturday.TLabel")
+            elif i == 6:  # 日曜日
+                label = ttk.Label(self.grid_frame, text=wd, anchor="center", style="Sunday.TLabel")
+            else:
+                label = ttk.Label(self.grid_frame, text=wd, anchor="center")
+            label.grid(row=0, column=i, sticky="nsew")
 
         cal = pycal.Calendar(firstweekday=0)  # 0: Monday
         row = 1
+        today = dt.date.today()  # 追加：今日の日付を取得
+        
         for week in cal.monthdatescalendar(y, m):
             for col, day in enumerate(week):
                 is_current_month = day.month == m
-                btn = ttk.Button(
-                    self.grid_frame,
-                    text=str(day.day),
-                    width=4,
-                    command=lambda d=day: self.select_date(d),
-                )
+                is_today = day == today  # 追加：今日かどうか
+                is_selected = self.selected_date == day  # 追加：選択中かどうか
+                
+                # スタイル名を決定（修正）
+                style_name = ""
+                weekday = day.weekday()  # 0=月曜, 6=日曜
+                
+                if is_current_month:
+                    if weekday == 6:  # 日曜日
+                        style_name = "Sunday.TButton"
+                    elif weekday == 5:  # 土曜日
+                        style_name = "Saturday.TButton"
+                
+                # 今日の日付または選択中の日付の場合は優先
+                if is_today and is_current_month:
+                    style_name = "Today.TButton"
+                if is_selected and is_current_month:
+                    style_name = "Selected.TButton"
+                
+                # ボタンを作成
+                if style_name:
+                    btn = ttk.Button(
+                        self.grid_frame,
+                        text=str(day.day),
+                        width=4,
+                        command=lambda d=day: self.select_date(d),
+                        style=style_name,
+                    )
+                else:
+                    btn = ttk.Button(
+                        self.grid_frame,
+                        text=str(day.day),
+                        width=4,
+                        command=lambda d=day: self.select_date(d),
+                    )
+                
+                if is_selected and is_current_month:
+                    self.selected_button = btn
+                
                 if not is_current_month:
                     btn.state(["disabled"])  # 当月以外は無効
+                    
                 btn.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
             row += 1
 
@@ -270,6 +327,7 @@ class CalendarWindow(tk.Frame):
     def select_date(self, day: dt.date) -> None:
         self.selected_date = day
         self.sel_var.set(f"選択: {day.isoformat()}")
+        self.draw_calendar()  # 変更：再描画して選択状態を反映
 
     def prev_month(self) -> None:
         y, m = self.year.get(), self.month.get()
@@ -287,6 +345,14 @@ class CalendarWindow(tk.Frame):
             self.month.set(1)
         else:
             self.month.set(m + 1)
+        self.draw_calendar()
+
+    # 追加：「今日に戻る」メソッド
+    def go_to_today(self) -> None:
+        today = dt.date.today()
+        self.year.set(today.year)
+        self.month.set(today.month)
+        self.selected_date = today
         self.draw_calendar()
 
     def request_day(self) -> None:
