@@ -260,34 +260,36 @@ pip install peewee
 python main.py
 
 # ディレクトリ構造
-freedom/<br>
-├── main.py # アプリケーションエントリーポイント<br>
-├── watcher_tk.py # JSONリクエスト監視（Tkinter版）<br>
-├── watcher.py # JSONリクエスト監視<br>
-├── my_database.db # SQLiteデータベースファイル<br>
-├── README.md # このファイル<br>
-├── front_end/ # フロントエンドモジュール<br>
-│ ├── init.py<br>
-│ ├── calender.py # カレンダー機能<br>
-│ ├── change.py # 予定追加/変更機能<br>
-│ ├── money.py # 給料計算機能<br>
-│ └── menu.py # メインメニュー<br>
+```
+freedom/
+├── main.py # アプリケーションエントリーポイント
+├── watcher_tk.py # JSONリクエスト監視（Tkinter版）
+├── watcher.py # JSONリクエスト監視
+├── my_database.db # SQLiteデータベースファイル
+├── README.md # このファイル
+├── front_end/ # フロントエンドモジュール
+│   ├── __init__.py
+│   ├── calender.py # カレンダー機能
+│   ├── change.py # 予定追加/変更機能
+│   ├── money.py # 給料計算機能
+│   └── menu.py # メインメニュー
 │
-├── back_end/ # バックエンドモジュール<br>
-│ ├── init.py<br>
-│ ├── functions.py # API関数（予定のCRUD操作）<br>
-│ └── db/ # データベース関連<br>
-│ ├── init.py<br>
-│ ├── db.py # データベースモデル定義<br>
-│ └── init.py # データベース初期化<br>
+├── back_end/ # バックエンドモジュール
+│   ├── __init__.py
+│   ├── functions.py # API関数（予定のCRUD操作）
+│   └── db/ # データベース関連
+│       ├── __init__.py
+│       ├── db.py # データベースモデル定義
+│       └── init.py # データベース初期化
 │
-├── json/ # JSON通信ファイル<br>
-│ ├── request.json # フロントエンド→バックエンドのリクエスト<br>
-│ └── response.json # バックエンド→フロントエンドのレスポンス<br>
+├── json/ # JSON通信ファイル
+│   ├── request.json # フロントエンド→バックエンドのリクエスト
+│   └── response.json # バックエンド→フロントエンドのレスポンス
 │
-└── tests/ # テストコード<br>
-├── test_frontend.py # フロントエンドのテスト<br>
-└── test_ui_behavior.py # UI動作のテスト<br>
+└── tests/ # テストコード
+    ├── test_frontend.py # フロントエンドのテスト
+    └── test_ui_behavior.py # UI動作のテスト
+```
 
 # 今後の拡張予定
 [ ] 月全体の予定を一度に取得する機能の追加<br>
