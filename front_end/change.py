@@ -71,12 +71,17 @@ def get_next_task_id() -> int:
 
 class ChangeWindow(tk.Toplevel):
     def __init__(
-        self, master: tk.Misc | None = None, *, existing_schedule: dict | None = None
+        self,
+        master: tk.Misc | None = None,
+        *,
+        existing_schedule: dict | None = None,
+        on_success=None,
     ) -> None:
         super().__init__(master)
         self.title("予定の追加/変更")
         self.geometry("500x520")
         self._existing = existing_schedule
+        self._on_success = on_success
 
         container = ttk.Frame(self)
         container.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
@@ -247,6 +252,13 @@ class ChangeWindow(tk.Toplevel):
                 "リクエストを送信しました。バックエンドで処理してください。"
             )
             messagebox.showinfo("送信", "request.json に書き込みました。")
+
+        # コールバックを実行して親画面を更新
+        if self._on_success:
+            self._on_success()
+
+        # ダイアログを閉じる
+        self.destroy()
 
 
 if __name__ == "__main__":

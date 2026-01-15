@@ -18,12 +18,11 @@ def _paths():
     return req, res
 
 
-<<<<<<< HEAD
 def write_request(payload: dict) -> str:
     """リクエストを送信し、リクエストIDを返す"""
     req, res = _paths()
     os.makedirs(os.path.dirname(req), exist_ok=True)
-    
+
     # リクエスト送信前に古いレスポンスを削除
     try:
         if os.path.exists(res):
@@ -36,21 +35,9 @@ def write_request(payload: dict) -> str:
     request_id = str(uuid.uuid4())
     payload["_request_id"] = request_id
 
-=======
-def write_request(payload: dict) -> None:
-    req, res = _paths()
-    
-    # response.json を初期化
-    os.makedirs(os.path.dirname(res), exist_ok=True)
-    with open(res, "w", encoding="utf-8") as f:
-        f.write("")
-    
-    # request.json にペイロード書き込み
-    os.makedirs(os.path.dirname(req), exist_ok=True)
->>>>>>> 049d2a18d56fff41f356fbeae46250f3f390dcce
     with open(req, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-    
+
     return request_id
 
 
@@ -65,31 +52,38 @@ def try_read_response() -> dict | None:
         return None
 
 
-<<<<<<< HEAD
 def wait_for_response(
-    expected_action: str, expected_request_id: str, expected_data_validator=None, timeout: float = 10.0, root=None
+    expected_action: str,
+    expected_request_id: str,
+    expected_data_validator=None,
+    timeout: float = 10.0,
+    root=None,
 ) -> dict | None:
     """指定されたリクエストIDのレスポンスまで待機する"""
     import sys
     from datetime import datetime
-    
-=======
-def wait_for_response(expected_action: str, timeout: float = 30.0) -> dict | None:
-    """レスポンスファイルが作成されて期待するアクションが返されるまで待機する"""
->>>>>>> 049d2a18d56fff41f356fbeae46250f3f390dcce
+
     _, res = _paths()
     start_time = time.time()
-    print(f"[{datetime.now()}] wait_for_response started: action={expected_action}, request_id={expected_request_id}", file=sys.stderr, flush=True)
+    print(
+        f"[{datetime.now()}] wait_for_response started: action={expected_action}, request_id={expected_request_id}",
+        file=sys.stderr,
+        flush=True,
+    )
 
     while time.time() - start_time < timeout:
         # Tkinter event loop を処理（バックエンドが実行されるようにする）
         if root:
             root.update()
-        
+
         elapsed = time.time() - start_time
         # ファイルが存在するかチェック
         if not os.path.exists(res):
-            print(f"[{datetime.now()}] [{elapsed:.2f}s] Response file not found", file=sys.stderr, flush=True)
+            print(
+                f"[{datetime.now()}] [{elapsed:.2f}s] Response file not found",
+                file=sys.stderr,
+                flush=True,
+            )
             time.sleep(0.05)
             continue
 
@@ -97,36 +91,64 @@ def wait_for_response(expected_action: str, timeout: float = 30.0) -> dict | Non
             time.sleep(0.05)  # ファイル書き込み完了を待つ
             with open(res, "r", encoding="utf-8") as f:
                 content = f.read().strip()
-                print(f"[{datetime.now()}] [{elapsed:.2f}s] Response content: {content[:100]}", file=sys.stderr, flush=True)
+                print(
+                    f"[{datetime.now()}] [{elapsed:.2f}s] Response content: {content[:100]}",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 if not content:  # 空ファイルの場合はスキップ
-                    print(f"[{datetime.now()}] [{elapsed:.2f}s] Response file is empty", file=sys.stderr, flush=True)
+                    print(
+                        f"[{datetime.now()}] [{elapsed:.2f}s] Response file is empty",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                     time.sleep(0.05)
                     continue
 
                 resp = json.loads(content)
                 action = resp.get("action")
                 request_id = resp.get("_request_id")
-                
-                print(f"[{datetime.now()}] [{elapsed:.2f}s] Parsed response: action={action}, request_id={request_id}", file=sys.stderr, flush=True)
+
+                print(
+                    f"[{datetime.now()}] [{elapsed:.2f}s] Parsed response: action={action}, request_id={request_id}",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
                 # 期待されるアクション＆リクエストIDのレスポンスか確認
                 if action == expected_action and request_id == expected_request_id:
-                    print(f"[{datetime.now()}] [{elapsed:.2f}s] Matching response found!", file=sys.stderr, flush=True)
+                    print(
+                        f"[{datetime.now()}] [{elapsed:.2f}s] Matching response found!",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                     # 追加の検証があればチェック
                     if expected_data_validator is None or expected_data_validator(resp):
                         return resp
                     else:
                         # 検証失敗：異なるデータの場合は待機を続ける
-                        print(f"[{datetime.now()}] [{elapsed:.2f}s] Validator failed", file=sys.stderr, flush=True)
+                        print(
+                            f"[{datetime.now()}] [{elapsed:.2f}s] Validator failed",
+                            file=sys.stderr,
+                            flush=True,
+                        )
                         time.sleep(0.05)
                 else:
                     # 異なるリクエストIDまたはアクションの場合は無視して待機を続ける
-                    print(f"[{datetime.now()}] [{elapsed:.2f}s] Not matching (expected action={expected_action}, request_id={expected_request_id})", file=sys.stderr, flush=True)
+                    print(
+                        f"[{datetime.now()}] [{elapsed:.2f}s] Not matching (expected action={expected_action}, request_id={expected_request_id})",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                     time.sleep(0.05)
 
         except (json.JSONDecodeError, IOError) as e:
             # JSONパースエラーまたはファイル読み込みエラーは無視して再試行
-            print(f"[{datetime.now()}] [{elapsed:.2f}s] Error reading response: {e}", file=sys.stderr, flush=True)
+            print(
+                f"[{datetime.now()}] [{elapsed:.2f}s] Error reading response: {e}",
+                file=sys.stderr,
+                flush=True,
+            )
             time.sleep(0.05)
             continue
 
@@ -372,13 +394,15 @@ class CalendarWindow(tk.Frame):
         self.update_idletasks()
 
         # レスポンスが返ってくるまで待機
-        resp = wait_for_response("delete_schedule", request_id, timeout=10.0, root=self.master)
+        resp = wait_for_response(
+            "delete_schedule", request_id, timeout=10.0, root=self.master
+        )
 
         if resp and resp.get("ok") is True:
-            self.result.insert(tk.END, "削除しました。\n")
-            # ツリーから削除
-            self.tree.delete(*self.tree.get_children())
-            self.current_items = []
+            self.result.insert(tk.END, "削除しました。予定を再取得しています...\n")
+            self.update_idletasks()
+            # 削除成功後、予定を再取得
+            self.request_day()
         elif resp and resp.get("ok") is False:
             error = resp.get("error", {})
             self.result.insert(
@@ -403,7 +427,15 @@ class CalendarWindow(tk.Frame):
         except Exception:
             from change import ChangeWindow  # type: ignore
 
-        ChangeWindow(self.winfo_toplevel(), existing_schedule=target)
+        # 更新完了時のコールバック
+        def on_update_success():
+            self.result.delete("1.0", tk.END)
+            self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
+            self.update_idletasks()
+            # 更新成功後、予定を再取得
+            self.request_day()
+
+        ChangeWindow(self.winfo_toplevel(), existing_schedule=target, on_success=on_update_success)
         self.result.delete("1.0", tk.END)
         self.result.insert(tk.END, "更新ダイアログを開きました。\n")
 
