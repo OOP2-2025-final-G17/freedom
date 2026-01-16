@@ -795,6 +795,7 @@ class CalendarWindow(tk.Frame):
                 try:
                     with open(file_path, "w", encoding="utf-8") as f:
                         json.dump(schedules, f, ensure_ascii=False, indent=2)
+<<<<<<< Updated upstream
                     self.result.insert(
                         tk.END, f"{len(schedules)}件の予定をエクスポートしました。\n"
                     )
