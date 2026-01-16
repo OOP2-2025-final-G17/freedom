@@ -1,34 +1,10 @@
-import os
-import json
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from datetime import date
 
-
-def _paths():
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    req = os.path.join(base, "json", "request.json")
-    res = os.path.join(base, "json", "response.json")
-    return req, res
-
-
-def write_request(payload: dict) -> None:
-    req, _ = _paths()
-    os.makedirs(os.path.dirname(req), exist_ok=True)
-    with open(req, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-def try_read_response() -> dict | None:
-    _, res = _paths()
-    if not os.path.exists(res):
-        return None
-    try:
-        with open(res, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
+# 共通のリクエスト送信モジュールをインポート
+from .request_handler import write_request, try_read_response
 
 
 class MoneyWindow(tk.Toplevel):

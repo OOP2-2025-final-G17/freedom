@@ -5,22 +5,11 @@ from back_end.db.db import db, Schedule
 
 
 def ok(action: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "ok": True,
-        "action": action,
-        "data": data
-    }
+    return {"ok": True, "action": action, "data": data}
 
 
 def ng(action: str, code: str, message: str) -> Dict[str, Any]:
-    return {
-        "ok": False,
-        "action": action,
-        "error": {
-            "code": code,
-            "message": message
-        }
-    }
+    return {"ok": False, "action": action, "error": {"code": code, "message": message}}
 
 
 def schedule_to_dict(s: Schedule) -> Dict[str, Any]:
@@ -77,21 +66,16 @@ def get_schedule(payload: dict) -> dict:
     db.connect(reuse_if_open=True)
 
     query = (
-        Schedule
-        .select()
+        Schedule.select()
         .where(
-            (Schedule.start_date <= target_date) &
-            (Schedule.end_date >= target_date)
+            (Schedule.start_date <= target_date) & (Schedule.end_date >= target_date)
         )
         .order_by(Schedule.start_time)
     )
 
     return ok(
         action,
-        {
-            "date": payload["date"],
-            "schedules": [schedule_to_dict(s) for s in query]
-        }
+        {"date": payload["date"], "schedules": [schedule_to_dict(s) for s in query]},
     )
 
 
@@ -109,6 +93,7 @@ def delete_schedule(payload: dict) -> dict:
 
     s.delete_instance()
     return ok(action, {"deleted": payload["id"]})
+
 
 def update_schedule(payload: dict) -> dict:
     action = "update_schedule"
@@ -150,6 +135,162 @@ def update_schedule(payload: dict) -> dict:
     return ok(action, {"schedule": schedule_to_dict(s)})
 
 
+def get_monthly_schedule_by_mode(payload: dict) -> dict:
+    action = "get_monthly_schedule_by_mode"
+
+    if "year" not in payload or "month" not in payload:
+        return ng(action, "BAD_REQUEST", "year and month required")
+
+    try:
+        year = int(payload["year"])
+        month = int(payload["month"])
+    except Exception:
+        return ng(action, "BAD_REQUEST", "invalid year or month format")
+
+    if month < 1 or month > 12:
+        return ng(action, "BAD_REQUEST", "month must be between 1 and 12")
+
+    mode = payload.get("mode", "B")  # デフォルトはB
+
+    db.connect(reuse_if_open=True)
+
+    # 月の最初の日と最後の日を計算
+    import calendar
+
+    first_day = datetime(year, month, 1).date()
+    last_day = datetime(year, month, calendar.monthrange(year, month)[1]).date()
+
+    # 指定された月に含まれるスケジュールを取得
+    query = (
+        Schedule.select()
+        .where(
+            (Schedule.mode == mode)
+            & (
+                # スケジュールが月の範囲内に含まれる
+                ((Schedule.start_date <= last_day) & (Schedule.end_date >= first_day))
+            )
+        )
+        .order_by(Schedule.start_date, Schedule.start_time)
+    )
+
+    return ok(
+        action,
+        {
+            "year": year,
+            "month": month,
+            "mode": mode,
+            "schedules": [schedule_to_dict(s) for s in query],
+        },
+    )
+
+
+def get_monthly_schedule(payload: dict) -> dict:
+    """月全体の予定を取得（モード指定なし）"""
+    action = "get_monthly_schedule"
+
+    if "year" not in payload or "month" not in payload:
+        return ng(action, "BAD_REQUEST", "year and month required")
+
+    try:
+        year = int(payload["year"])
+        month = int(payload["month"])
+    except Exception:
+        return ng(action, "BAD_REQUEST", "invalid year or month format")
+
+    if month < 1 or month > 12:
+        return ng(action, "BAD_REQUEST", "month must be between 1 and 12")
+
+    db.connect(reuse_if_open=True)
+
+    # 月の最初の日と最後の日を計算
+    import calendar
+
+    first_day = datetime(year, month, 1).date()
+    last_day = datetime(year, month, calendar.monthrange(year, month)[1]).date()
+
+    # 指定された月に含まれる全てのスケジュールを取得
+    query = (
+        Schedule.select()
+        .where((Schedule.start_date <= last_day) & (Schedule.end_date >= first_day))
+        .order_by(Schedule.start_date, Schedule.start_time)
+    )
+
+    return ok(
+        action,
+        {
+            "year": year,
+            "month": month,
+            "schedules": [schedule_to_dict(s) for s in query],
+        },
+    )
+
+
+def get_all_schedules(payload: dict) -> dict:
+    """全ての予定を取得（エクスポート用）"""
+    action = "get_all_schedules"
+
+    db.connect(reuse_if_open=True)
+
+    query = Schedule.select().order_by(Schedule.start_date, Schedule.start_time)
+
+    return ok(
+        action,
+        {
+            "schedules": [schedule_to_dict(s) for s in query],
+        },
+    )
+
+
+def import_schedules(payload: dict) -> dict:
+    """スケジュールをインポート"""
+    action = "import_schedules"
+
+    if "schedules" not in payload:
+        return ng(action, "BAD_REQUEST", "schedules required")
+
+    schedules = payload["schedules"]
+    if not isinstance(schedules, list):
+        return ng(action, "BAD_REQUEST", "schedules must be a list")
+
+    db.connect(reuse_if_open=True)
+
+    imported_count = 0
+    errors = []
+
+    with db.atomic():
+        for idx, sc in enumerate(schedules):
+            try:
+                sd = datetime.strptime(sc["start_date"], "%Y-%m-%d").date()
+                st = datetime.strptime(sc["start_time"], "%H:%M").time()
+                ed = datetime.strptime(sc["end_date"], "%Y-%m-%d").date()
+                et = datetime.strptime(sc["end_time"], "%H:%M").time()
+
+                if datetime.combine(ed, et) <= datetime.combine(sd, st):
+                    errors.append(f"Index {idx}: end must be after start")
+                    continue
+
+                Schedule.create(
+                    mode=sc.get("mode"),
+                    name=sc.get("name"),
+                    start_date=sd,
+                    start_time=st,
+                    end_date=ed,
+                    end_time=et,
+                )
+                imported_count += 1
+
+            except Exception as e:
+                errors.append(f"Index {idx}: {str(e)}")
+                continue
+
+    return ok(
+        action,
+        {
+            "imported": imported_count,
+            "errors": errors,
+        },
+    )
+
 
 def handle_request(payload: dict) -> dict:
     action = payload.get("action")
@@ -162,6 +303,13 @@ def handle_request(payload: dict) -> dict:
         return delete_schedule(payload)
     if action == "update_schedule":
         return update_schedule(payload)
+    if action == "get_monthly_schedule_by_mode":
+        return get_monthly_schedule_by_mode(payload)
+    if action == "get_monthly_schedule":
+        return get_monthly_schedule(payload)
+    if action == "get_all_schedules":
+        return get_all_schedules(payload)
+    if action == "import_schedules":
+        return import_schedules(payload)
 
     return ng(action or "unknown", "BAD_REQUEST", "unsupported action")
-
