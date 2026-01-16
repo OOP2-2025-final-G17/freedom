@@ -1,7 +1,11 @@
 import datetime as dt
 import calendar as pycal
 import tkinter as tk
+<<<<<<< Updated upstream
 from tkinter import ttk, messagebox, filedialog, filedialog
+=======
+from tkinter import ttk, messagebox, filedialog
+>>>>>>> Stashed changes
 import time
 import json
 
@@ -69,6 +73,7 @@ class CalendarWindow(tk.Frame):
         ttk.Button(
             action_frame, text="この日の予定を取得", command=self.request_day
         ).pack(side=tk.RIGHT, padx=5)
+<<<<<<< Updated upstream
 
         ttk.Button(
             action_frame, text="月全体の予定を取得", command=self.request_month
@@ -82,6 +87,21 @@ class CalendarWindow(tk.Frame):
         ttk.Button(action_frame, text="インポート", command=self.import_data).pack(
             side=tk.LEFT, padx=5
         )
+=======
+        
+        ttk.Button(
+            action_frame, text="月全体の予定を取得", command=self.request_month
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        # データエクスポート/インポートボタン
+        ttk.Button(
+            action_frame, text="エクスポート", command=self.export_data
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            action_frame, text="インポート", command=self.import_data
+        ).pack(side=tk.LEFT, padx=5)
+>>>>>>> Stashed changes
 
         # self.result = tk.Text(self, height=10)
         # 予定リストと操作ボタン
@@ -396,7 +416,11 @@ class CalendarWindow(tk.Frame):
     def request_month(self) -> None:
         """月全体の予定を取得する"""
         y, m = self.year.get(), self.month.get()
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
         payload = {
             "action": "get_monthly_schedule",
             "year": y,
@@ -404,6 +428,7 @@ class CalendarWindow(tk.Frame):
         }
         request_id = write_request(payload)
         self.result.delete("1.0", tk.END)
+<<<<<<< Updated upstream
         self.result.insert(tk.END, f"{y}年{m}月の予定を取得中...\n")
 
         # 更新を強制的に画面に反映
@@ -721,6 +746,12 @@ class CalendarWindow(tk.Frame):
         self.result.delete("1.0", tk.END)
         self.result.insert(tk.END, f"{y}年{m}月の予定を取得中...\n")
 
+=======
+        self.result.insert(
+            tk.END, f"{y}年{m}月の予定を取得中...\n"
+        )
+
+>>>>>>> Stashed changes
         # 更新を強制的に画面に反映
         self.update_idletasks()
 
@@ -788,7 +819,11 @@ class CalendarWindow(tk.Frame):
                 title="エクスポート先を選択",
                 defaultextension=".json",
                 filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+<<<<<<< Updated upstream
                 initialfile=f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+=======
+                initialfile=f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+>>>>>>> Stashed changes
             )
 
             if file_path:
@@ -803,6 +838,11 @@ class CalendarWindow(tk.Frame):
                     messagebox.showinfo(
                         "成功", f"{len(schedules)}件の予定をエクスポートしました。"
                     )
+=======
+                    self.result.insert(tk.END, f"{len(schedules)}件の予定をエクスポートしました。\n")
+                    self.result.insert(tk.END, f"保存先: {file_path}\n")
+                    messagebox.showinfo("成功", f"{len(schedules)}件の予定をエクスポートしました。")
+>>>>>>> Stashed changes
                 except Exception as e:
                     self.result.insert(tk.END, f"ファイル保存エラー: {e}\n")
                     messagebox.showerror("エラー", f"ファイル保存に失敗しました: {e}")
@@ -810,6 +850,7 @@ class CalendarWindow(tk.Frame):
                 self.result.insert(tk.END, "エクスポートがキャンセルされました。\n")
         elif resp and resp.get("ok") is False:
             error = resp.get("error", {})
+<<<<<<< Updated upstream
             self.result.insert(
                 tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
             )
@@ -818,13 +859,23 @@ class CalendarWindow(tk.Frame):
             self.result.insert(
                 tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
             )
+=======
+            self.result.insert(tk.END, f"エラー: {error.get('message', '不明なエラー')}\n")
+            messagebox.showerror("エラー", error.get('message', '不明なエラー'))
+        else:
+            self.result.insert(tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n")
+>>>>>>> Stashed changes
             messagebox.showerror("エラー", "バックエンドからの応答がありませんでした。")
 
     def import_data(self) -> None:
         """JSONファイルから予定をインポート"""
         file_path = filedialog.askopenfilename(
             title="インポートするファイルを選択",
+<<<<<<< Updated upstream
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+=======
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+>>>>>>> Stashed changes
         )
 
         if not file_path:
@@ -835,9 +886,13 @@ class CalendarWindow(tk.Frame):
                 schedules = json.load(f)
 
             if not isinstance(schedules, list):
+<<<<<<< Updated upstream
                 messagebox.showerror(
                     "エラー", "無効なファイル形式です。スケジュールのリストが必要です。"
                 )
+=======
+                messagebox.showerror("エラー", "無効なファイル形式です。スケジュールのリストが必要です。")
+>>>>>>> Stashed changes
                 return
 
             # IDフィールドを削除（新規作成するため）
@@ -866,6 +921,7 @@ class CalendarWindow(tk.Frame):
                 imported = data.get("imported", 0)
                 errors = data.get("errors", [])
 
+<<<<<<< Updated upstream
                 self.result.insert(
                     tk.END, f"{imported}件の予定をインポートしました。\n"
                 )
@@ -873,6 +929,11 @@ class CalendarWindow(tk.Frame):
                     self.result.insert(
                         tk.END, f"{len(errors)}件のエラーがありました:\n"
                     )
+=======
+                self.result.insert(tk.END, f"{imported}件の予定をインポートしました。\n")
+                if errors:
+                    self.result.insert(tk.END, f"{len(errors)}件のエラーがありました:\n")
+>>>>>>> Stashed changes
                     for err in errors[:10]:  # 最初の10件のみ表示
                         self.result.insert(tk.END, f"  - {err}\n")
                     if len(errors) > 10:
@@ -888,6 +949,7 @@ class CalendarWindow(tk.Frame):
 
             elif resp and resp.get("ok") is False:
                 error = resp.get("error", {})
+<<<<<<< Updated upstream
                 self.result.insert(
                     tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
                 )
@@ -899,6 +961,13 @@ class CalendarWindow(tk.Frame):
                 messagebox.showerror(
                     "エラー", "バックエンドからの応答がありませんでした。"
                 )
+=======
+                self.result.insert(tk.END, f"エラー: {error.get('message', '不明なエラー')}\n")
+                messagebox.showerror("エラー", error.get('message', '不明なエラー'))
+            else:
+                self.result.insert(tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n")
+                messagebox.showerror("エラー", "バックエンドからの応答がありませんでした。")
+>>>>>>> Stashed changes
 
         except json.JSONDecodeError as e:
             messagebox.showerror("エラー", f"JSONファイルの解析に失敗しました: {e}")
@@ -940,7 +1009,11 @@ class CalendarWindow(tk.Frame):
                 if messagebox.askyesno(
                     "予定の移動",
                     f"「{dragged_data.get('name', '')}」の時刻を\n"
+<<<<<<< Updated upstream
                     f"「{target_data.get('name', '')}」の時刻と入れ替えますか?",
+=======
+                    f"「{target_data.get('name', '')}」の時刻と入れ替えますか?"
+>>>>>>> Stashed changes
                 ):
                     self.swap_schedule_times(dragged_data, target_data)
 
@@ -994,9 +1067,13 @@ class CalendarWindow(tk.Frame):
 
             if resp2 and resp2.get("ok") is True:
                 self.result.delete("1.0", tk.END)
+<<<<<<< Updated upstream
                 self.result.insert(
                     tk.END, "予定の時刻を入れ替えました。再取得しています...\n"
                 )
+=======
+                self.result.insert(tk.END, "予定の時刻を入れ替えました。再取得しています...\n")
+>>>>>>> Stashed changes
                 self.update_idletasks()
 
                 # 再取得
@@ -1007,14 +1084,22 @@ class CalendarWindow(tk.Frame):
             else:
                 error = resp2.get("error", {}) if resp2 else {}
                 messagebox.showerror(
+<<<<<<< Updated upstream
                     "エラー",
                     f"2つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
+=======
+                    "エラー", f"2つ目の更新に失敗しました: {error.get('message', '不明なエラー')}"
+>>>>>>> Stashed changes
                 )
         else:
             error = resp1.get("error", {}) if resp1 else {}
             messagebox.showerror(
+<<<<<<< Updated upstream
                 "エラー",
                 f"1つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
+=======
+                "エラー", f"1つ目の更新に失敗しました: {error.get('message', '不明なエラー')}"
+>>>>>>> Stashed changes
             )
 
 
