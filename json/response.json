@@ -1,27 +1,16 @@
 {
   "ok": true,
-  "action": "get_monthly_schedule_by_mode",
+  "action": "get_schedule",
   "data": {
-    "year": 2026,
-    "month": 1,
-    "mode": "B",
+    "date": "2026-01-18",
     "schedules": [
       {
-        "id": 5,
+        "id": 9,
         "mode": "B",
-        "name": "test_b",
-        "start_date": "2026-01-15",
+        "name": "test remake",
+        "start_date": "2026-01-18",
         "start_time": "09:00",
-        "end_date": "2026-01-15",
-        "end_time": "18:00"
-      },
-      {
-        "id": 7,
-        "mode": "B",
-        "name": "test_wage1",
-        "start_date": "2026-01-16",
-        "start_time": "09:00",
-        "end_date": "2026-01-16",
+        "end_date": "2026-01-18",
         "end_time": "18:00"
       },
       {
@@ -35,5 +24,5 @@
       }
     ]
   },
-  "_request_id": "2177f662-128f-460e-9558-9e2bebb81aa7"
+  "_request_id": "f8e3ae3c-2a4c-4944-8612-31e28fbd7271"
 }

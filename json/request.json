@@ -1,7 +1,5 @@
 {
-  "action": "get_monthly_schedule_by_mode",
-  "year": 2026,
-  "month": 1,
-  "mode": "B",
-  "_request_id": "2177f662-128f-460e-9558-9e2bebb81aa7"
+  "action": "get_schedule",
+  "date": "2026-01-18",
+  "_request_id": "f8e3ae3c-2a4c-4944-8612-31e28fbd7271"
 }
