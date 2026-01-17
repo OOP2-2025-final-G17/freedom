@@ -7,13 +7,18 @@
       {
         "id": 9,
         "mode": "B",
+<<<<<<< Updated upstream
         "name": "test remake",
+=======
+        "name": "haitatu",
+>>>>>>> Stashed changes
         "start_date": "2026-01-18",
         "start_time": "09:00",
         "end_date": "2026-01-18",
         "end_time": "18:00"
       },
       {
+<<<<<<< Updated upstream
         "id": 8,
         "mode": "B",
         "name": "test_night",
@@ -25,4 +30,17 @@
     ]
   },
   "_request_id": "f8e3ae3c-2a4c-4944-8612-31e28fbd7271"
+=======
+        "id": 11,
+        "mode": "A",
+        "name": "遊び",
+        "start_date": "2026-01-18",
+        "start_time": "19:00",
+        "end_date": "2026-01-18",
+        "end_time": "22:00"
+      }
+    ]
+  },
+  "_request_id": "9bcfd468-ceed-46ed-b22c-78495b5556dd"
+>>>>>>> Stashed changes
 }

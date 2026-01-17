@@ -1,5 +1,9 @@
 {
   "action": "get_schedule",
   "date": "2026-01-18",
+<<<<<<< Updated upstream
   "_request_id": "f8e3ae3c-2a4c-4944-8612-31e28fbd7271"
+=======
+  "_request_id": "9bcfd468-ceed-46ed-b22c-78495b5556dd"
+>>>>>>> Stashed changes
 }
