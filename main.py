@@ -4,9 +4,7 @@ from back_end.db.init import initialize_database
 from watcher_tk import JsonRequestWatcherTk
 
 
-
 def run_app() -> None:
-    
     """Launch the Tkinter GUI with calendar on left and menu on right."""
     try:
         from front_end.calender import CalendarWindow
