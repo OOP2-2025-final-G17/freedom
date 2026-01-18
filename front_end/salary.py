@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
+from tkinter import Tk, StringVar, IntVar
+from tkinter import ttk
 from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 
 
 class SalaryWindow(tk.Toplevel):
@@ -11,6 +14,10 @@ class SalaryWindow(tk.Toplevel):
         self.salaries: List[Dict[str, float | int | str]] = (
             []
         )  # [{'name': str, 'hours': float, 'wage': int}]
+
+        # 属性を明示的に初期化
+        self.year_var: StringVar = StringVar(value=str(datetime.now().year))
+        self.month_var: StringVar = StringVar(value=str(datetime.now().month))
 
         tk.Button(self, text="新規登録", command=self.add_salary).pack(pady=10)
         tk.Button(self, text="合計計算", command=self.calc_total).pack(pady=5)
