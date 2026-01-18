@@ -189,6 +189,7 @@ def get_monthly_schedule_by_mode(payload: dict) -> dict:
         },
     )
 
+<<<<<<< HEAD
 
 def get_monthly_schedule(payload: dict) -> dict:
     """月全体の予定を取得（モード指定なし）"""
@@ -297,6 +298,8 @@ def import_schedules(payload: dict) -> dict:
         },
     )
 
+=======
+>>>>>>> origin
 
 def handle_request(payload: dict) -> dict:
     action = payload.get("action")
@@ -311,11 +314,14 @@ def handle_request(payload: dict) -> dict:
         return update_schedule(payload)
     if action == "get_monthly_schedule_by_mode":
         return get_monthly_schedule_by_mode(payload)
+<<<<<<< HEAD
     if action == "get_monthly_schedule":
         return get_monthly_schedule(payload)
     if action == "get_all_schedules":
         return get_all_schedules(payload)
     if action == "import_schedules":
         return import_schedules(payload)
+=======
+>>>>>>> origin
 
     return ng(action or "unknown", "BAD_REQUEST", "unsupported action")

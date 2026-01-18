@@ -2,34 +2,25 @@
   "ok": true,
   "action": "get_schedule",
   "data": {
-    "date": "2026-01-15",
+    "date": "2026-01-18",
     "schedules": [
       {
-        "id": 2,
-        "mode": "A",
-        "name": "test_update",
-        "start_date": "2026-01-15",
-        "start_time": "09:00",
-        "end_date": "2026-01-15",
-        "end_time": "18:00"
-      },
-      {
-        "id": 5,
+        "id": 9,
         "mode": "B",
-        "name": "test_b",
-        "start_date": "2026-01-15",
+        "name": "test remake",
+        "start_date": "2026-01-18",
         "start_time": "09:00",
-        "end_date": "2026-01-15",
+        "end_date": "2026-01-18",
         "end_time": "18:00"
       },
       {
-        "id": 6,
-        "mode": "A",
-        "name": "test_add",
-        "start_date": "2026-01-15",
-        "start_time": "09:00",
-        "end_date": "2026-01-15",
-        "end_time": "18:00"
+        "id": 8,
+        "mode": "B",
+        "name": "test_night",
+        "start_date": "2026-01-18",
+        "start_time": "18:00",
+        "end_date": "2026-01-19",
+        "end_time": "01:00"
       }
     ]
   },
