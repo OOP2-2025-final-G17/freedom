@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Dict, Any
+from datetime import datetime, date, time
+from typing import Dict, Any, List, cast
 
 from back_end.db.db import db, Schedule
 
@@ -13,14 +13,20 @@ def ng(action: str, code: str, message: str) -> Dict[str, Any]:
 
 
 def schedule_to_dict(s: Schedule) -> Dict[str, Any]:
+    # Peeweeのフィールドを明示的にPythonの型として扱う
+    start_date = cast(date, s.start_date)
+    start_time = cast(time, s.start_time)
+    end_date = cast(date, s.end_date)
+    end_time = cast(time, s.end_time)
+    
     return {
         "id": s.id,
         "mode": s.mode,
         "name": s.name,
-        "start_date": s.start_date.strftime("%Y-%m-%d"),
-        "start_time": s.start_time.strftime("%H:%M"),
-        "end_date": s.end_date.strftime("%Y-%m-%d"),
-        "end_time": s.end_time.strftime("%H:%M"),
+        "start_date": start_date.strftime("%Y-%m-%d"),
+        "start_time": start_time.strftime("%H:%M"),
+        "end_date": end_date.strftime("%Y-%m-%d"),
+        "end_time": end_time.strftime("%H:%M"),
     }
 
 

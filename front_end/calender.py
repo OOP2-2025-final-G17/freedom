@@ -1,11 +1,7 @@
 import datetime as dt
 import calendar as pycal
 import tkinter as tk
-<<<<<<< Updated upstream
-from tkinter import ttk, messagebox, filedialog, filedialog
-=======
 from tkinter import ttk, messagebox, filedialog
->>>>>>> Stashed changes
 import time
 import json
 
@@ -73,7 +69,6 @@ class CalendarWindow(tk.Frame):
         ttk.Button(
             action_frame, text="この日の予定を取得", command=self.request_day
         ).pack(side=tk.RIGHT, padx=5)
-<<<<<<< Updated upstream
 
         ttk.Button(
             action_frame, text="月全体の予定を取得", command=self.request_month
@@ -87,21 +82,6 @@ class CalendarWindow(tk.Frame):
         ttk.Button(action_frame, text="インポート", command=self.import_data).pack(
             side=tk.LEFT, padx=5
         )
-=======
-        
-        ttk.Button(
-            action_frame, text="月全体の予定を取得", command=self.request_month
-        ).pack(side=tk.RIGHT, padx=5)
-        
-        # データエクスポート/インポートボタン
-        ttk.Button(
-            action_frame, text="エクスポート", command=self.export_data
-        ).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(
-            action_frame, text="インポート", command=self.import_data
-        ).pack(side=tk.LEFT, padx=5)
->>>>>>> Stashed changes
 
         # self.result = tk.Text(self, height=10)
         # 予定リストと操作ボタン
@@ -123,12 +103,6 @@ class CalendarWindow(tk.Frame):
         self.tree.column("start", width=140, anchor="center")
         self.tree.column("end", width=140, anchor="center")
         self.tree.pack(fill=tk.BOTH, expand=True, padx=4, pady=(4, 6))
-
-        # ドラッグ&ドロップの設定
-        self.dragged_item = None
-        self.tree.bind("<ButtonPress-1>", self.on_drag_start)
-        self.tree.bind("<B1-Motion>", self.on_drag_motion)
-        self.tree.bind("<ButtonRelease-1>", self.on_drag_release)
 
         op_frame = ttk.Frame(list_frame)
         op_frame.pack(fill=tk.X)
@@ -416,11 +390,7 @@ class CalendarWindow(tk.Frame):
     def request_month(self) -> None:
         """月全体の予定を取得する"""
         y, m = self.year.get(), self.month.get()
-<<<<<<< Updated upstream
 
-=======
-        
->>>>>>> Stashed changes
         payload = {
             "action": "get_monthly_schedule",
             "year": y,
@@ -428,7 +398,6 @@ class CalendarWindow(tk.Frame):
         }
         request_id = write_request(payload)
         self.result.delete("1.0", tk.END)
-<<<<<<< Updated upstream
         self.result.insert(tk.END, f"{y}年{m}月の予定を取得中...\n")
 
         # 更新を強制的に画面に反映
@@ -440,7 +409,6 @@ class CalendarWindow(tk.Frame):
             request_id,
             timeout=10.0,
             root=self.master,
-            debug=True,
         )
 
         # ツリー更新
@@ -488,7 +456,6 @@ class CalendarWindow(tk.Frame):
             request_id,
             timeout=10.0,
             root=self.master,
-            debug=True,
         )
 
         if resp and resp.get("ok") is True:
@@ -570,7 +537,6 @@ class CalendarWindow(tk.Frame):
                 request_id,
                 timeout=30.0,
                 root=self.master,
-                debug=True,
             )
 
             if resp and resp.get("ok") is True:
@@ -616,491 +582,6 @@ class CalendarWindow(tk.Frame):
             messagebox.showerror("エラー", f"JSONファイルの解析に失敗しました: {e}")
         except Exception as e:
             messagebox.showerror("エラー", f"インポート中にエラーが発生しました: {e}")
-
-    def on_drag_start(self, event):
-        """ドラッグ開始時の処理"""
-        item = self.tree.identify_row(event.y)
-        if item:
-            self.dragged_item = item
-            self.tree.selection_set(item)
-
-    def on_drag_motion(self, event):
-        """ドラッグ中の処理（視覚的なフィードバック）"""
-        if self.dragged_item:
-            # カーソルの下にあるアイテムをハイライト
-            target_item = self.tree.identify_row(event.y)
-            if target_item and target_item != self.dragged_item:
-                self.tree.selection_set(target_item)
-
-    def on_drag_release(self, event):
-        """ドラッグ終了時の処理（予定の並び替え）"""
-        if not self.dragged_item:
-            return
-
-        target_item = self.tree.identify_row(event.y)
-        if target_item and target_item != self.dragged_item:
-            # ドラッグ元とドロップ先のインデックスを取得
-            drag_index = self.tree.index(self.dragged_item)
-            target_index = self.tree.index(target_item)
-
-            if drag_index != target_index:
-                # リスト内のアイテムを入れ替え
-                dragged_data = self.current_items[drag_index]
-                target_data = self.current_items[target_index]
-
-                # 時刻の入れ替えを提案
-                if messagebox.askyesno(
-                    "予定の移動",
-                    f"「{dragged_data.get('name', '')}」の時刻を\n"
-                    f"「{target_data.get('name', '')}」の時刻と入れ替えますか?",
-                ):
-                    self.swap_schedule_times(dragged_data, target_data)
-
-        self.dragged_item = None
-
-    def swap_schedule_times(self, schedule1, schedule2):
-        """2つの予定の時刻を入れ替える"""
-        # 時刻情報を入れ替え
-        temp_start_date = schedule1["start_date"]
-        temp_start_time = schedule1["start_time"]
-        temp_end_date = schedule1["end_date"]
-        temp_end_time = schedule1["end_time"]
-
-        # スケジュール1を更新
-        payload1 = {
-            "action": "update_schedule",
-            "id": schedule1["id"],
-            "mode": schedule1["mode"],
-            "name": schedule1["name"],
-            "start_date": schedule2["start_date"],
-            "start_time": schedule2["start_time"],
-            "end_date": schedule2["end_date"],
-            "end_time": schedule2["end_time"],
-        }
-
-        # スケジュール2を更新
-        payload2 = {
-            "action": "update_schedule",
-            "id": schedule2["id"],
-            "mode": schedule2["mode"],
-            "name": schedule2["name"],
-            "start_date": temp_start_date,
-            "start_time": temp_start_time,
-            "end_date": temp_end_date,
-            "end_time": temp_end_time,
-        }
-
-        # 両方の更新リクエストを送信
-        request_id1 = write_request(payload1)
-        time.sleep(0.3)  # リクエスト間の待機
-        resp1 = wait_for_response(
-            "update_schedule", request_id1, timeout=10.0, root=self.master, debug=True
-        )
-
-        if resp1 and resp1.get("ok") is True:
-            request_id2 = write_request(payload2)
-            time.sleep(0.3)
-            resp2 = wait_for_response(
-                "update_schedule",
-                request_id2,
-                timeout=10.0,
-                root=self.master,
-                debug=True,
-            )
-
-            if resp2 and resp2.get("ok") is True:
-                self.result.delete("1.0", tk.END)
-                self.result.insert(
-                    tk.END, "予定の時刻を入れ替えました。再取得しています...\n"
-                )
-                self.update_idletasks()
-
-                # 再取得
-                if self.selected_date:
-                    self.request_day()
-                else:
-                    self.request_month()
-            else:
-                error = resp2.get("error", {}) if resp2 else {}
-                messagebox.showerror(
-                    "エラー",
-                    f"2つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
-                )
-        else:
-            error = resp1.get("error", {}) if resp1 else {}
-            messagebox.showerror(
-                "エラー",
-                f"1つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
-            )
-
-    def request_month(self) -> None:
-        """月全体の予定を取得する"""
-        y, m = self.year.get(), self.month.get()
-
-        payload = {
-            "action": "get_monthly_schedule",
-            "year": y,
-            "month": m,
-        }
-        request_id = write_request(payload)
-        self.result.delete("1.0", tk.END)
-        self.result.insert(tk.END, f"{y}年{m}月の予定を取得中...\n")
-
-=======
-        self.result.insert(
-            tk.END, f"{y}年{m}月の予定を取得中...\n"
-        )
-
->>>>>>> Stashed changes
-        # 更新を強制的に画面に反映
-        self.update_idletasks()
-
-        # レスポンスが返ってくるまで待機
-        resp = wait_for_response(
-            "get_monthly_schedule",
-            request_id,
-            timeout=10.0,
-            root=self.master,
-        )
-
-        # ツリー更新
-        self.tree.delete(*self.tree.get_children())
-        self.current_items = []
-
-        if resp and resp.get("ok") is True:
-            data = resp.get("data", {})
-            items = data.get("schedules", [])
-            if not items:
-                self.result.insert(tk.END, f"{y}年{m}月の予定はありません。\n")
-            else:
-                for sc in items:
-                    mode = sc.get("mode", "-")
-                    name = sc.get("name", "")
-                    start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
-                    end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
-                    self.tree.insert("", tk.END, values=(mode, name, start, end))
-                    self.current_items.append(sc)
-                self.result.insert(
-                    tk.END, f"{y}年{m}月の予定を{len(items)}件取得しました。\n"
-                )
-        elif resp and resp.get("ok") is False:
-            error = resp.get("error", {})
-            self.result.insert(
-                tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
-            )
-        else:
-            self.result.insert(
-                tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
-            )
-
-    def export_data(self) -> None:
-        """全ての予定をJSONファイルにエクスポート"""
-        payload = {
-            "action": "get_all_schedules",
-        }
-        request_id = write_request(payload)
-        self.result.delete("1.0", tk.END)
-        self.result.insert(tk.END, "データをエクスポート中...\n")
-        self.update_idletasks()
-
-        resp = wait_for_response(
-            "get_all_schedules",
-            request_id,
-            timeout=10.0,
-            root=self.master,
-        )
-
-        if resp and resp.get("ok") is True:
-            data = resp.get("data", {})
-            schedules = data.get("schedules", [])
-
-            # ファイル保存ダイアログ
-            file_path = filedialog.asksaveasfilename(
-                title="エクスポート先を選択",
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-<<<<<<< Updated upstream
-                initialfile=f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-=======
-                initialfile=f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
->>>>>>> Stashed changes
-            )
-
-            if file_path:
-                try:
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        json.dump(schedules, f, ensure_ascii=False, indent=2)
-<<<<<<< Updated upstream
-                    self.result.insert(
-                        tk.END, f"{len(schedules)}件の予定をエクスポートしました。\n"
-                    )
-                    self.result.insert(tk.END, f"保存先: {file_path}\n")
-                    messagebox.showinfo(
-                        "成功", f"{len(schedules)}件の予定をエクスポートしました。"
-                    )
-=======
-                    self.result.insert(tk.END, f"{len(schedules)}件の予定をエクスポートしました。\n")
-                    self.result.insert(tk.END, f"保存先: {file_path}\n")
-                    messagebox.showinfo("成功", f"{len(schedules)}件の予定をエクスポートしました。")
->>>>>>> Stashed changes
-                except Exception as e:
-                    self.result.insert(tk.END, f"ファイル保存エラー: {e}\n")
-                    messagebox.showerror("エラー", f"ファイル保存に失敗しました: {e}")
-            else:
-                self.result.insert(tk.END, "エクスポートがキャンセルされました。\n")
-        elif resp and resp.get("ok") is False:
-            error = resp.get("error", {})
-<<<<<<< Updated upstream
-            self.result.insert(
-                tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
-            )
-            messagebox.showerror("エラー", error.get("message", "不明なエラー"))
-        else:
-            self.result.insert(
-                tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
-            )
-=======
-            self.result.insert(tk.END, f"エラー: {error.get('message', '不明なエラー')}\n")
-            messagebox.showerror("エラー", error.get('message', '不明なエラー'))
-        else:
-            self.result.insert(tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n")
->>>>>>> Stashed changes
-            messagebox.showerror("エラー", "バックエンドからの応答がありませんでした。")
-
-    def import_data(self) -> None:
-        """JSONファイルから予定をインポート"""
-        file_path = filedialog.askopenfilename(
-            title="インポートするファイルを選択",
-<<<<<<< Updated upstream
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-=======
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
->>>>>>> Stashed changes
-        )
-
-        if not file_path:
-            return
-
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                schedules = json.load(f)
-
-            if not isinstance(schedules, list):
-<<<<<<< Updated upstream
-                messagebox.showerror(
-                    "エラー", "無効なファイル形式です。スケジュールのリストが必要です。"
-                )
-=======
-                messagebox.showerror("エラー", "無効なファイル形式です。スケジュールのリストが必要です。")
->>>>>>> Stashed changes
-                return
-
-            # IDフィールドを削除（新規作成するため）
-            for sc in schedules:
-                if "id" in sc:
-                    del sc["id"]
-
-            payload = {
-                "action": "import_schedules",
-                "schedules": schedules,
-            }
-            request_id = write_request(payload)
-            self.result.delete("1.0", tk.END)
-            self.result.insert(tk.END, f"{len(schedules)}件の予定をインポート中...\n")
-            self.update_idletasks()
-
-            resp = wait_for_response(
-                "import_schedules",
-                request_id,
-                timeout=30.0,
-                root=self.master,
-            )
-
-            if resp and resp.get("ok") is True:
-                data = resp.get("data", {})
-                imported = data.get("imported", 0)
-                errors = data.get("errors", [])
-
-<<<<<<< Updated upstream
-                self.result.insert(
-                    tk.END, f"{imported}件の予定をインポートしました。\n"
-                )
-                if errors:
-                    self.result.insert(
-                        tk.END, f"{len(errors)}件のエラーがありました:\n"
-                    )
-=======
-                self.result.insert(tk.END, f"{imported}件の予定をインポートしました。\n")
-                if errors:
-                    self.result.insert(tk.END, f"{len(errors)}件のエラーがありました:\n")
->>>>>>> Stashed changes
-                    for err in errors[:10]:  # 最初の10件のみ表示
-                        self.result.insert(tk.END, f"  - {err}\n")
-                    if len(errors) > 10:
-                        self.result.insert(tk.END, f"  ... 他{len(errors) - 10}件\n")
-
-                messagebox.showinfo("完了", f"{imported}件の予定をインポートしました。")
-
-                # 現在表示中の日付/月を再取得
-                if self.selected_date:
-                    self.request_day()
-                else:
-                    self.request_month()
-
-            elif resp and resp.get("ok") is False:
-                error = resp.get("error", {})
-<<<<<<< Updated upstream
-                self.result.insert(
-                    tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
-                )
-                messagebox.showerror("エラー", error.get("message", "不明なエラー"))
-            else:
-                self.result.insert(
-                    tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
-                )
-                messagebox.showerror(
-                    "エラー", "バックエンドからの応答がありませんでした。"
-                )
-=======
-                self.result.insert(tk.END, f"エラー: {error.get('message', '不明なエラー')}\n")
-                messagebox.showerror("エラー", error.get('message', '不明なエラー'))
-            else:
-                self.result.insert(tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n")
-                messagebox.showerror("エラー", "バックエンドからの応答がありませんでした。")
->>>>>>> Stashed changes
-
-        except json.JSONDecodeError as e:
-            messagebox.showerror("エラー", f"JSONファイルの解析に失敗しました: {e}")
-        except Exception as e:
-            messagebox.showerror("エラー", f"インポート中にエラーが発生しました: {e}")
-
-    def on_drag_start(self, event):
-        """ドラッグ開始時の処理"""
-        item = self.tree.identify_row(event.y)
-        if item:
-            self.dragged_item = item
-            self.tree.selection_set(item)
-
-    def on_drag_motion(self, event):
-        """ドラッグ中の処理（視覚的なフィードバック）"""
-        if self.dragged_item:
-            # カーソルの下にあるアイテムをハイライト
-            target_item = self.tree.identify_row(event.y)
-            if target_item and target_item != self.dragged_item:
-                self.tree.selection_set(target_item)
-
-    def on_drag_release(self, event):
-        """ドラッグ終了時の処理（予定の並び替え）"""
-        if not self.dragged_item:
-            return
-
-        target_item = self.tree.identify_row(event.y)
-        if target_item and target_item != self.dragged_item:
-            # ドラッグ元とドロップ先のインデックスを取得
-            drag_index = self.tree.index(self.dragged_item)
-            target_index = self.tree.index(target_item)
-
-            if drag_index != target_index:
-                # リスト内のアイテムを入れ替え
-                dragged_data = self.current_items[drag_index]
-                target_data = self.current_items[target_index]
-
-                # 時刻の入れ替えを提案
-                if messagebox.askyesno(
-                    "予定の移動",
-                    f"「{dragged_data.get('name', '')}」の時刻を\n"
-<<<<<<< Updated upstream
-                    f"「{target_data.get('name', '')}」の時刻と入れ替えますか?",
-=======
-                    f"「{target_data.get('name', '')}」の時刻と入れ替えますか?"
->>>>>>> Stashed changes
-                ):
-                    self.swap_schedule_times(dragged_data, target_data)
-
-        self.dragged_item = None
-
-    def swap_schedule_times(self, schedule1, schedule2):
-        """2つの予定の時刻を入れ替える"""
-        # 時刻情報を入れ替え
-        temp_start_date = schedule1["start_date"]
-        temp_start_time = schedule1["start_time"]
-        temp_end_date = schedule1["end_date"]
-        temp_end_time = schedule1["end_time"]
-
-        # スケジュール1を更新
-        payload1 = {
-            "action": "update_schedule",
-            "id": schedule1["id"],
-            "mode": schedule1["mode"],
-            "name": schedule1["name"],
-            "start_date": schedule2["start_date"],
-            "start_time": schedule2["start_time"],
-            "end_date": schedule2["end_date"],
-            "end_time": schedule2["end_time"],
-        }
-
-        # スケジュール2を更新
-        payload2 = {
-            "action": "update_schedule",
-            "id": schedule2["id"],
-            "mode": schedule2["mode"],
-            "name": schedule2["name"],
-            "start_date": temp_start_date,
-            "start_time": temp_start_time,
-            "end_date": temp_end_date,
-            "end_time": temp_end_time,
-        }
-
-        # 両方の更新リクエストを送信
-        request_id1 = write_request(payload1)
-        time.sleep(0.3)  # リクエスト間の待機
-        resp1 = wait_for_response(
-            "update_schedule", request_id1, timeout=10.0, root=self.master
-        )
-
-        if resp1 and resp1.get("ok") is True:
-            request_id2 = write_request(payload2)
-            time.sleep(0.3)
-            resp2 = wait_for_response(
-                "update_schedule", request_id2, timeout=10.0, root=self.master
-            )
-
-            if resp2 and resp2.get("ok") is True:
-                self.result.delete("1.0", tk.END)
-<<<<<<< Updated upstream
-                self.result.insert(
-                    tk.END, "予定の時刻を入れ替えました。再取得しています...\n"
-                )
-=======
-                self.result.insert(tk.END, "予定の時刻を入れ替えました。再取得しています...\n")
->>>>>>> Stashed changes
-                self.update_idletasks()
-
-                # 再取得
-                if self.selected_date:
-                    self.request_day()
-                else:
-                    self.request_month()
-            else:
-                error = resp2.get("error", {}) if resp2 else {}
-                messagebox.showerror(
-<<<<<<< Updated upstream
-                    "エラー",
-                    f"2つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
-=======
-                    "エラー", f"2つ目の更新に失敗しました: {error.get('message', '不明なエラー')}"
->>>>>>> Stashed changes
-                )
-        else:
-            error = resp1.get("error", {}) if resp1 else {}
-            messagebox.showerror(
-<<<<<<< Updated upstream
-                "エラー",
-                f"1つ目の更新に失敗しました: {error.get('message', '不明なエラー')}",
-=======
-                "エラー", f"1つ目の更新に失敗しました: {error.get('message', '不明なエラー')}"
->>>>>>> Stashed changes
-            )
 
 
 if __name__ == "__main__":
