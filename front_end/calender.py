@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import time
 import json
+import os
 
 # 共通のリクエスト送信モジュールをインポート
 from .request_handler import write_request, wait_for_response, try_read_response
@@ -21,22 +22,20 @@ class CalendarWindow(tk.Frame):
         self.year = tk.IntVar(value=today.year)
         self.month = tk.IntVar(value=today.month)
         self.selected_date: dt.date | None = None
-        self.selected_button: tk.Widget | None = None  # 追加：選択中のボタンを追跡
 
-        # カスタムスタイルの設定（修正）
+        # カスタムスタイルの設定
         style = ttk.Style()
-        style.configure(
-            "Today.TButton", background="#ffffcc"
-        )  # 今日の日付用（薄い黄色）
-        style.configure(
-            "Selected.TButton", background="#ccccff"
-        )  # 選択日付用（薄い青色）
-        # 追加：土曜日・日曜日用のスタイル
-        style.configure("Saturday.TButton", foreground="blue")
-        style.configure("Sunday.TButton", foreground="red")
+
+        # ラベル用スタイル
         style.configure("Saturday.TLabel", foreground="blue")
         style.configure("Sunday.TLabel", foreground="red")
+
+        # ボタン用スタイル
+        style.configure("Saturday.TButton", foreground="blue")
+        style.configure("Sunday.TButton", foreground="red")
+
         self.current_items: list[dict] = []
+        self.dates_with_schedules: set = set()  # 予定がある日付を記録
 
         control = ttk.Frame(self)
         control.pack(fill=tk.X, padx=10, pady=8)
@@ -74,15 +73,6 @@ class CalendarWindow(tk.Frame):
             action_frame, text="月全体の予定を取得", command=self.request_month
         ).pack(side=tk.RIGHT, padx=5)
 
-        # データエクスポート/インポートボタン
-        ttk.Button(action_frame, text="エクスポート", command=self.export_data).pack(
-            side=tk.LEFT, padx=5
-        )
-
-        ttk.Button(action_frame, text="インポート", command=self.import_data).pack(
-            side=tk.LEFT, padx=5
-        )
-
         # self.result = tk.Text(self, height=10)
         # 予定リストと操作ボタン
         list_frame = ttk.LabelFrame(self, text="予定一覧（選択して操作）")
@@ -111,6 +101,14 @@ class CalendarWindow(tk.Frame):
         )
         ttk.Button(op_frame, text="選択を更新", command=self.update_selected).pack(
             side=tk.LEFT, padx=4
+        )
+
+        # データエクスポート/インポートボタンを右側に配置
+        ttk.Button(op_frame, text="インポート", command=self.import_data).pack(
+            side=tk.RIGHT, padx=4
+        )
+        ttk.Button(op_frame, text="エクスポート", command=self.export_data).pack(
+            side=tk.RIGHT, padx=4
         )
 
         # 取得結果のメッセージ表示
@@ -145,15 +143,15 @@ class CalendarWindow(tk.Frame):
 
         cal = pycal.Calendar(firstweekday=0)  # 0: Monday
         row = 1
-        today = dt.date.today()  # 追加：今日の日付を取得
+        today = dt.date.today()
 
         for week in cal.monthdatescalendar(y, m):
             for col, day in enumerate(week):
                 is_current_month = day.month == m
-                is_today = day == today  # 追加：今日かどうか
-                is_selected = self.selected_date == day  # 追加：選択中かどうか
+                is_today = day == today
+                is_selected = self.selected_date == day
 
-                # スタイル名を決定（修正）
+                # スタイル名を決定
                 style_name = ""
                 weekday = day.weekday()  # 0=月曜, 6=日曜
 
@@ -163,34 +161,17 @@ class CalendarWindow(tk.Frame):
                     elif weekday == 5:  # 土曜日
                         style_name = "Saturday.TButton"
 
-                # 今日の日付または選択中の日付の場合は優先
-                if is_today and is_current_month:
-                    style_name = "Today.TButton"
-                if is_selected and is_current_month:
-                    style_name = "Selected.TButton"
-
                 # ボタンを作成
-                if style_name:
-                    btn = ttk.Button(
-                        self.grid_frame,
-                        text=str(day.day),
-                        width=4,
-                        command=lambda d=day: self.select_date(d),
-                        style=style_name,
-                    )
-                else:
-                    btn = ttk.Button(
-                        self.grid_frame,
-                        text=str(day.day),
-                        width=4,
-                        command=lambda d=day: self.select_date(d),
-                    )
-
-                if is_selected and is_current_month:
-                    self.selected_button = btn
+                btn = ttk.Button(
+                    self.grid_frame,
+                    text=str(day.day),
+                    width=4,
+                    command=lambda d=day: self.select_date(d),
+                    style=style_name if style_name else "TButton",
+                )
 
                 if not is_current_month:
-                    btn.state(["disabled"])  # 当月以外は無効
+                    btn.state(["disabled"])
 
                 btn.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
             row += 1
@@ -462,12 +443,24 @@ class CalendarWindow(tk.Frame):
             data = resp.get("data", {})
             schedules = data.get("schedules", [])
 
+            # exportフォルダを作成
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            export_dir = os.path.join(base_dir, "export")
+            os.makedirs(export_dir, exist_ok=True)
+
+            # デフォルトのファイル名とパス
+            default_filename = (
+                f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            )
+            default_path = os.path.join(export_dir, default_filename)
+
             # ファイル保存ダイアログ
             file_path = filedialog.asksaveasfilename(
                 title="エクスポート先を選択",
                 defaultextension=".json",
                 filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                initialfile=f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                initialdir=export_dir,
+                initialfile=default_filename,
             )
 
             if file_path:

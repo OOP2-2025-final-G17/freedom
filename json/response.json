@@ -1,9 +1,7 @@
 {
   "ok": true,
-  "action": "get_monthly_schedule",
+  "action": "get_all_schedules",
   "data": {
-    "year": 2026,
-    "month": 1,
     "schedules": [
       {
         "id": 7,
@@ -52,5 +50,5 @@
       }
     ]
   },
-  "_request_id": "58114d8a-d7a5-4d17-8a3f-69f64573f583"
+  "_request_id": "a18c6e10-ec75-4e51-beee-0cd2af16c170"
 }
