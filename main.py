@@ -34,8 +34,8 @@ def run_app() -> None:
     right_frame = tk.Frame(main_container, relief=tk.SOLID, bd=1)
     right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(5, 10), pady=10)
 
-    # メニューを右側に配置（rootではなくright_frameを渡す）
-    menu_widget = MainMenu(right_frame)
+    # メニューを右側に配置（カレンダーへの参照を渡す）
+    menu_widget = MainMenu(right_frame, calendar_widget=calendar_widget)
 
     root.mainloop()
 

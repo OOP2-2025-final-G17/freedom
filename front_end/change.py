@@ -3,48 +3,24 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date, datetime
-import uuid
-import time
 
+# 共通のリクエスト送信モジュールをインポート
+from .request_handler import write_request
 
-def _request_path() -> str:
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "json", "request.json")
-
-
-def _response_path() -> str:
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "json", "response.json")
+# ユーティリティのインポート
+from .utils.constants import (
+    DEFAULT_START_TIME,
+    DEFAULT_END_TIME,
+    CHANGE_WINDOW_WIDTH,
+    CHANGE_WINDOW_HEIGHT,
+    TASK_ID_FILE,
+)
+from .utils.validators import validate_schedule_format
 
 
 def _id_path() -> str:
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "json", "task_id.json")
-
-
-def write_request(payload: dict) -> str:
-    """リクエストを送信し、リクエストIDを返す"""
-    path = _request_path()
-    res_path = _response_path()
-
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    # リクエスト送信前に古いレスポンスを削除
-    try:
-        if os.path.exists(res_path):
-            os.remove(res_path)
-        time.sleep(0.2)
-    except Exception:
-        pass
-
-    # リクエストに一意のIDをつける
-    request_id = str(uuid.uuid4())
-    payload["_request_id"] = request_id
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-    return request_id
+    return os.path.join(base, TASK_ID_FILE)
 
 
 def get_next_task_id() -> int:
@@ -79,7 +55,7 @@ class ChangeWindow(tk.Toplevel):
     ) -> None:
         super().__init__(master)
         self.title("予定の追加/変更")
-        self.geometry("500x520")
+        self.geometry(f"{CHANGE_WINDOW_WIDTH}x{CHANGE_WINDOW_HEIGHT}")
         self._existing = existing_schedule
         self._on_success = on_success
 
@@ -137,7 +113,9 @@ class ChangeWindow(tk.Toplevel):
         self.start_time.insert(
             0,
             str(
-                self._existing.get("start_time", "09:00") if self._existing else "09:00"
+                self._existing.get("start_time", DEFAULT_START_TIME)
+                if self._existing
+                else DEFAULT_START_TIME
             ),
         )
 
@@ -165,7 +143,11 @@ class ChangeWindow(tk.Toplevel):
         self.end_time.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.end_time.insert(
             0,
-            str(self._existing.get("end_time", "18:00") if self._existing else "18:00"),
+            str(
+                self._existing.get("end_time", DEFAULT_END_TIME)
+                if self._existing
+                else DEFAULT_END_TIME
+            ),
         )
 
         # Action buttons
@@ -186,33 +168,13 @@ class ChangeWindow(tk.Toplevel):
         end_date_str = self.end_date.get().strip()
         end_time_str = self.end_time.get().strip()
 
-        if not name:
-            messagebox.showwarning("入力不足", "タイトルを入力してください。")
-            return
+        # バリデーション実行
+        is_valid, error_msg = validate_schedule_format(
+            name, mode, start_date_str, start_time_str, end_date_str, end_time_str
+        )
 
-        # 開始日と終了日を比較
-        try:
-            start_dt = datetime.fromisoformat(f"{start_date_str}T{start_time_str}:00")
-            end_dt = datetime.fromisoformat(f"{end_date_str}T{end_time_str}:00")
-
-            # 1) 同一日付で終了時刻が開始時刻より前なら専用メッセージ
-            if start_date_str == end_date_str and end_dt < start_dt:
-                messagebox.showwarning(
-                    "日付エラー",
-                    "同じ日付のときは終了時刻は開始時刻より後にしてください。",
-                )
-                return
-            # 2) それ以外でも終了が開始より前は汎用メッセージ
-            if end_dt < start_dt:
-                messagebox.showwarning(
-                    "日付エラー", "終了日時は開始日時より後である必要があります。"
-                )
-                return
-        except ValueError:
-            messagebox.showwarning(
-                "形式エラー",
-                "日付と時刻の形式を確認してください。\n開始日: YYYY-MM-DD、時刻: HH:MM",
-            )
+        if not is_valid:
+            messagebox.showwarning("入力エラー", error_msg)
             return
 
         # 追加/更新のアクション切替
@@ -239,7 +201,7 @@ class ChangeWindow(tk.Toplevel):
                 "end_time": end_time_str,
             }
 
-        write_request(payload)
+        request_id = write_request(payload)
         if self._existing is not None:
             self.status_var.set(
                 "更新リクエストを送信しました。バックエンドで処理してください。"
@@ -253,9 +215,9 @@ class ChangeWindow(tk.Toplevel):
             )
             messagebox.showinfo("送信", "request.json に書き込みました。")
 
-        # コールバックを実行して親画面を更新
+        # コールバックを実行して親画面を更新（request_idを渡す）
         if self._on_success:
-            self._on_success()
+            self._on_success(request_id)
 
         # ダイアログを閉じる
         self.destroy()
