@@ -40,8 +40,17 @@
         "start_time": "09:00",
         "end_date": "2026-01-15",
         "end_time": "18:00"
+      },
+      {
+        "id": 8,
+        "mode": "B",
+        "name": "test_b3",
+        "start_date": "2026-01-19",
+        "start_time": "09:00",
+        "end_date": "2026-01-19",
+        "end_time": "18:00"
       }
     ]
   },
-  "_request_id": "06d83c98-7dd5-44e6-81ca-4dbfd432b18a"
+  "_request_id": "58114d8a-d7a5-4d17-8a3f-69f64573f583"
 }

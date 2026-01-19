@@ -1,71 +1,91 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
-from tkinter import Tk, StringVar, IntVar
-from tkinter import ttk
-from typing import List, Dict, Optional
+from tkinter import simpledialog, messagebox, ttk
 from datetime import datetime, timedelta
+import request_handler
 
 
 class SalaryWindow(tk.Toplevel):
-    def __init__(self, master: Optional[tk.Misc] = None) -> None:
+    def __init__(self, master):
         super().__init__(master)
         self.title("給料計算")
-        self.geometry("400x400")
-        self.salaries: List[Dict[str, float | int | str]] = (
-            []
-        )  # [{'name': str, 'hours': float, 'wage': int}]
+        self.geometry("700x600")
+        self.master_root = master
+        self.salaries = []  # [{'name': str, 'hours': float, 'wage': int}]
+        self.fetched_schedules = []  # 取得したスケジュールを保存
 
-        # 属性を明示的に初期化
-        self.year_var: StringVar = StringVar(value=str(datetime.now().year))
-        self.month_var: StringVar = StringVar(value=str(datetime.now().month))
+        # 月選択用のフレーム
+        month_frame = tk.Frame(self)
+        month_frame.pack(pady=10)
 
+        tk.Label(month_frame, text="年:").pack(side=tk.LEFT, padx=5)
+        self.year_var = tk.IntVar(value=datetime.now().year)
+        tk.Spinbox(
+            month_frame, from_=2020, to=2030, textvariable=self.year_var, width=6
+        ).pack(side=tk.LEFT)
+
+        tk.Label(month_frame, text="月:").pack(side=tk.LEFT, padx=5)
+        self.month_var = tk.IntVar(value=datetime.now().month)
+        tk.Spinbox(
+            month_frame, from_=1, to=12, textvariable=self.month_var, width=4
+        ).pack(side=tk.LEFT)
+
+        tk.Button(
+            month_frame,
+            text="シフト取得",
+            command=self.fetch_mode_b_schedules,
+        ).pack(side=tk.LEFT, padx=10)
+
+        # 時給入力フレーム
+        wage_frame = tk.Frame(self)
+        wage_frame.pack(pady=5)
+
+        tk.Label(wage_frame, text="通常時給:").pack(side=tk.LEFT, padx=5)
+        self.wage_var = tk.IntVar(value=1000)
+        tk.Entry(wage_frame, textvariable=self.wage_var, width=10).pack(side=tk.LEFT)
+        tk.Label(wage_frame, text="円").pack(side=tk.LEFT, padx=5)
+
+        tk.Label(wage_frame, text="深夜割増率:").pack(side=tk.LEFT, padx=(20, 5))
+        self.night_rate_var = tk.DoubleVar(value=1.25)
+        tk.Entry(wage_frame, textvariable=self.night_rate_var, width=8).pack(
+            side=tk.LEFT
+        )
+        tk.Label(wage_frame, text="倍").pack(side=tk.LEFT, padx=5)
+
+        tk.Button(
+            wage_frame,
+            text="給料計算",
+            command=self.calculate_salary_from_schedules,
+            bg="lightblue",
+        ).pack(side=tk.LEFT, padx=10)
+        """
         tk.Button(self, text="新規登録", command=self.add_salary).pack(pady=10)
         tk.Button(self, text="合計計算", command=self.calc_total).pack(pady=5)
-        self.listbox = tk.Listbox(self)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
+        """
+        # スクロール付きテキストウィジェット
+        text_frame = tk.Frame(self)
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.text_widget = tk.Text(
+            text_frame, yscrollcommand=scrollbar.set, width=80, height=20
+        )
+        self.text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.text_widget.yview)
+
         self.refresh_list()
 
-    def add_salary(self) -> None:
-        name = simpledialog.askstring(
-            "氏名", "従業員名を入力してください:", parent=self
-        )
-        if not name:
-            return
-
-        hours_str = simpledialog.askstring(
-            "労働時間", "労働時間（h）を入力してください:", parent=self
-        )
-        if not hours_str:
-            return
-
-        wage_str = simpledialog.askstring(
-            "時給", "時給を入力してください:", parent=self
-        )
-        if not wage_str:
-            return
-
-        try:
-            hours = float(hours_str)
-            wage = int(wage_str)
-        except (TypeError, ValueError):
-            messagebox.showerror("入力エラー", "数値を正しく入力してください。")
-            return
-
-        self.salaries.append({"name": name, "hours": hours, "wage": wage})
-        self.refresh_list()
-
-    def refresh_list(self) -> None:
-        self.listbox.delete(0, tk.END)
+    def refresh_list(self):
+        self.text_widget.delete(1.0, tk.END)
         for s in self.salaries:
-            hours = float(s["hours"])
-            wage = int(s["wage"])
-            total = hours * wage
-            self.listbox.insert(
-                tk.END, f"{s['name']}：{hours}h × {wage}円 = {total:.0f}円"
+            total = s["hours"] * s["wage"]
+            self.text_widget.insert(
+                tk.END, f"{s['name']}：{s['hours']}h × {s['wage']}円 = {total:.0f}円\n"
             )
 
-    def calc_total(self) -> None:
-        total = sum(float(s["hours"]) * int(s["wage"]) for s in self.salaries)
+    def calc_total(self):
+        total = sum(s["hours"] * s["wage"] for s in self.salaries)
         messagebox.showinfo("合計給与", f"全員分の合計給与：{total:.0f}円")
 
     def fetch_mode_b_schedules(self):
@@ -80,8 +100,8 @@ class SalaryWindow(tk.Toplevel):
             "mode": "B",
         }
 
-        request_id = write_request(payload)
-        response = wait_for_response(
+        request_id = request_handler.write_request(payload)
+        response = request_handler.wait_for_response(
             "get_monthly_schedule_by_mode", request_id, root=self.master_root
         )
 
@@ -243,8 +263,6 @@ class SalaryWindow(tk.Toplevel):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.withdraw()  # ルートの空ウィンドウを消す（必要なら外してOK）
-    SalaryWindow(root)  # これを呼ばないと画面は出ない
     root.withdraw()  # ルートの空ウィンドウを消す（必要なら外してOK）
     SalaryWindow(root)  # これを呼ばないと画面は出ない
     root.mainloop()
