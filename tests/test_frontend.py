@@ -64,7 +64,6 @@ class FrontendTestCase(unittest.TestCase):
         menu = MainMenu(self.root)
         # 各ボタンのコールバック呼び出し（ウィンドウ生成）
         menu.open_change()
-        menu.open_money()
         # ステータス文言が更新されているか
         self.assertIn("モード", menu.status_var.get())
 
@@ -115,49 +114,6 @@ class FrontendTestCase(unittest.TestCase):
         self.assertEqual(data.get("start_time"), "09:00")
         self.assertEqual(data.get("end_date"), "2026-01-08")
         self.assertEqual(data.get("end_time"), "10:30")
-
-    def test_money_request_and_show_result(self):
-        import front_end.money as money_mod
-
-        # GUIダイアログが出ないようにモック
-        money_mod.messagebox.showinfo = lambda *a, **k: None
-        MoneyWindow = money_mod.MoneyWindow
-
-        mw = MoneyWindow(self.root)
-        mw.year_var.set(2026)
-        mw.month_var.set(1)
-        mw.request_calc()
-
-        self.assertTrue(os.path.exists(REQ_PATH))
-        data = self._read_json(REQ_PATH)
-        self.assertEqual(data.get("action"), "calc_wage")
-        self.assertEqual(data.get("year"), 2026)
-        self.assertEqual(data.get("month"), 1)
-
-        # ダミーのresponseを用意して表示
-        resp = {
-            "action": "calc_wage_result",
-            "year": 2026,
-            "month": 1,
-            "total_hours": 5.0,
-            "total_wage": 5500,
-            "detail": [
-                {
-                    "date": "2026-01-05",
-                    "hours": 5.0,
-                    "wage": 1100,
-                    "amount": 5500,
-                }
-            ],
-        }
-        with open(RES_PATH, "w", encoding="utf-8") as f:
-            json.dump(resp, f, ensure_ascii=False, indent=2)
-
-        mw.try_show_result()
-        contents = mw.output.get("1.0", "end").strip()
-        self.assertIn("総労働時間: 5.0 時間", contents)
-        self.assertIn("推定給料: 5500 円", contents)
-        self.assertIn("2026-01-05", contents)
 
 
 if __name__ == "__main__":

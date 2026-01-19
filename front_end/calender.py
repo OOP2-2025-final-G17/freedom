@@ -9,6 +9,9 @@ import os
 # 共通のリクエスト送信モジュールをインポート
 from .request_handler import write_request, wait_for_response, try_read_response
 
+# データI/O機能のインポート
+from .utils.data_io import export_schedules, import_schedules
+
 # デバッグモード（False にするとログが出ない）
 DEBUG = False
 
@@ -101,14 +104,6 @@ class CalendarWindow(tk.Frame):
         )
         ttk.Button(op_frame, text="選択を更新", command=self.update_selected).pack(
             side=tk.LEFT, padx=4
-        )
-
-        # データエクスポート/インポートボタンを右側に配置
-        ttk.Button(op_frame, text="インポート", command=self.import_data).pack(
-            side=tk.RIGHT, padx=4
-        )
-        ttk.Button(op_frame, text="エクスポート", command=self.export_data).pack(
-            side=tk.RIGHT, padx=4
         )
 
         # 取得結果のメッセージ表示
@@ -424,157 +419,24 @@ class CalendarWindow(tk.Frame):
 
     def export_data(self) -> None:
         """全ての予定をJSONファイルにエクスポート"""
-        payload = {
-            "action": "get_all_schedules",
-        }
-        request_id = write_request(payload)
-        self.result.delete("1.0", tk.END)
-        self.result.insert(tk.END, "データをエクスポート中...\n")
-        self.update_idletasks()
-
-        resp = wait_for_response(
-            "get_all_schedules",
-            request_id,
-            timeout=10.0,
-            root=self.master,
-        )
-
-        if resp and resp.get("ok") is True:
-            data = resp.get("data", {})
-            schedules = data.get("schedules", [])
-
-            # exportフォルダを作成
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            export_dir = os.path.join(base_dir, "export")
-            os.makedirs(export_dir, exist_ok=True)
-
-            # デフォルトのファイル名とパス
-            default_filename = (
-                f"schedules_export_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            )
-            default_path = os.path.join(export_dir, default_filename)
-
-            # ファイル保存ダイアログ
-            file_path = filedialog.asksaveasfilename(
-                title="エクスポート先を選択",
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                initialdir=export_dir,
-                initialfile=default_filename,
-            )
-
-            if file_path:
-                try:
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        json.dump(schedules, f, ensure_ascii=False, indent=2)
-                    self.result.insert(
-                        tk.END, f"{len(schedules)}件の予定をエクスポートしました。\n"
-                    )
-                    self.result.insert(tk.END, f"保存先: {file_path}\n")
-                    messagebox.showinfo(
-                        "成功", f"{len(schedules)}件の予定をエクスポートしました。"
-                    )
-                except Exception as e:
-                    self.result.insert(tk.END, f"ファイル保存エラー: {e}\n")
-                    messagebox.showerror("エラー", f"ファイル保存に失敗しました: {e}")
-            else:
-                self.result.insert(tk.END, "エクスポートがキャンセルされました。\n")
-        elif resp and resp.get("ok") is False:
-            error = resp.get("error", {})
-            self.result.insert(
-                tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
-            )
-            messagebox.showerror("エラー", error.get("message", "不明なエラー"))
-        else:
-            self.result.insert(
-                tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
-            )
-            messagebox.showerror("エラー", "バックエンドからの応答がありませんでした。")
+        export_schedules(self.result, self.master)
 
     def import_data(self) -> None:
         """JSONファイルから予定をインポート"""
-        file_path = filedialog.askopenfilename(
-            title="インポートするファイルを選択",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-        )
 
-        if not file_path:
-            return
-
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                schedules = json.load(f)
-
-            if not isinstance(schedules, list):
-                messagebox.showerror(
-                    "エラー", "無効なファイル形式です。スケジュールのリストが必要です。"
-                )
-                return
-
-            # IDフィールドを削除（新規作成するため）
-            for sc in schedules:
-                if "id" in sc:
-                    del sc["id"]
-
-            payload = {
-                "action": "import_schedules",
-                "schedules": schedules,
-            }
-            request_id = write_request(payload)
+        def on_import_success():
             self.result.delete("1.0", tk.END)
-            self.result.insert(tk.END, f"{len(schedules)}件の予定をインポート中...\n")
+            self.result.insert(tk.END, "インポート完了。予定を再取得しています...\n")
             self.update_idletasks()
-
-            resp = wait_for_response(
-                "import_schedules",
-                request_id,
-                timeout=30.0,
-                root=self.master,
-            )
-
-            if resp and resp.get("ok") is True:
-                data = resp.get("data", {})
-                imported = data.get("imported", 0)
-                errors = data.get("errors", [])
-
-                self.result.insert(
-                    tk.END, f"{imported}件の予定をインポートしました。\n"
-                )
-                if errors:
-                    self.result.insert(
-                        tk.END, f"{len(errors)}件のエラーがありました:\n"
-                    )
-                    for err in errors[:10]:  # 最初の10件のみ表示
-                        self.result.insert(tk.END, f"  - {err}\n")
-                    if len(errors) > 10:
-                        self.result.insert(tk.END, f"  ... 他{len(errors) - 10}件\n")
-
-                messagebox.showinfo("完了", f"{imported}件の予定をインポートしました。")
-
-                # 現在表示中の日付/月を再取得
-                if self.selected_date:
-                    self.request_day()
-                else:
-                    self.request_month()
-
-            elif resp and resp.get("ok") is False:
-                error = resp.get("error", {})
-                self.result.insert(
-                    tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
-                )
-                messagebox.showerror("エラー", error.get("message", "不明なエラー"))
+            # 現在表示中の日付/月を再取得
+            if self.selected_date:
+                self.request_day()
             else:
-                self.result.insert(
-                    tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
-                )
-                messagebox.showerror(
-                    "エラー", "バックエンドからの応答がありませんでした。"
-                )
+                self.request_month()
 
-        except json.JSONDecodeError as e:
-            messagebox.showerror("エラー", f"JSONファイルの解析に失敗しました: {e}")
-        except Exception as e:
-            messagebox.showerror("エラー", f"インポート中にエラーが発生しました: {e}")
+        import_schedules(
+            self.result, self.master, on_success_callback=on_import_success
+        )
 
 
 if __name__ == "__main__":

@@ -6,12 +6,20 @@ from datetime import date
 # 共通のリクエスト送信モジュールをインポート
 from .request_handler import write_request, try_read_response
 
+# ユーティリティのインポート
+from .utils.constants import (
+    DEFAULT_WAGE,
+    NIGHT_RATE_MULTIPLIER,
+    MONEY_WINDOW_WIDTH,
+    MONEY_WINDOW_HEIGHT,
+)
+
 
 class MoneyWindow(tk.Toplevel):
     def __init__(self, master: tk.Misc | None = None) -> None:
         super().__init__(master)
         self.title("給料（支出）モード")
-        self.geometry("480x420")
+        self.geometry(f"{MONEY_WINDOW_WIDTH}x{MONEY_WINDOW_HEIGHT}")
 
         today = date.today()
         head = ttk.Frame(self)

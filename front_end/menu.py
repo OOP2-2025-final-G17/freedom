@@ -19,10 +19,10 @@ class MainMenu(tk.Frame):
         )
         self.btn_change.pack(fill=tk.X, pady=4)
 
-        self.btn_money = ttk.Button(
-            btn_frame, text="給料（支出）モード", command=self.open_money
+        self.btn_salary = ttk.Button(
+            btn_frame, text="給料計算", command=self.open_salary
         )
-        self.btn_money.pack(fill=tk.X, pady=4)
+        self.btn_salary.pack(fill=tk.X, pady=4)
 
         self.btn_export = ttk.Button(
             btn_frame, text="データエクスポート", command=self.export_data
@@ -47,10 +47,14 @@ class MainMenu(tk.Frame):
         ChangeWindow(self.winfo_toplevel())
         self.status_var.set("予定の追加/変更を開きました。")
 
-    def open_money(self):
-        from front_end.salary import SalaryWindow
+    def open_salary(self):
+        try:
+            from .salary import SalaryWindow
+        except Exception:
+            from salary import SalaryWindow  # type: ignore
 
-        SalaryWindow(self.master)
+        SalaryWindow(self.winfo_toplevel())
+        self.status_var.set("給料計算を開きました。")
 
     def export_data(self) -> None:
         """カレンダーウィンドウのエクスポート機能を呼び出す"""

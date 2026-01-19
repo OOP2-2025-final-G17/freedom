@@ -1,14 +1,26 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox, ttk
 from datetime import datetime, timedelta
-import request_handler
+
+# 共通のリクエスト送信モジュールをインポート
+from . import request_handler
+
+# ユーティリティのインポート
+from .utils.constants import (
+    DEFAULT_WAGE,
+    NIGHT_RATE_MULTIPLIER,
+    NIGHT_HOURS_START,
+    NIGHT_HOURS_END,
+    SALARY_WINDOW_WIDTH,
+    SALARY_WINDOW_HEIGHT,
+)
 
 
 class SalaryWindow(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.title("給料計算")
-        self.geometry("700x600")
+        self.geometry(f"{SALARY_WINDOW_WIDTH}x{SALARY_WINDOW_HEIGHT}")
         self.master_root = master
         self.salaries = []  # [{'name': str, 'hours': float, 'wage': int}]
         self.fetched_schedules = []  # 取得したスケジュールを保存
@@ -40,12 +52,12 @@ class SalaryWindow(tk.Toplevel):
         wage_frame.pack(pady=5)
 
         tk.Label(wage_frame, text="通常時給:").pack(side=tk.LEFT, padx=5)
-        self.wage_var = tk.IntVar(value=1000)
+        self.wage_var = tk.IntVar(value=DEFAULT_WAGE)
         tk.Entry(wage_frame, textvariable=self.wage_var, width=10).pack(side=tk.LEFT)
         tk.Label(wage_frame, text="円").pack(side=tk.LEFT, padx=5)
 
         tk.Label(wage_frame, text="深夜割増率:").pack(side=tk.LEFT, padx=(20, 5))
-        self.night_rate_var = tk.DoubleVar(value=1.25)
+        self.night_rate_var = tk.DoubleVar(value=NIGHT_RATE_MULTIPLIER)
         tk.Entry(wage_frame, textvariable=self.night_rate_var, width=8).pack(
             side=tk.LEFT
         )
@@ -172,7 +184,7 @@ class SalaryWindow(tk.Toplevel):
                 hour = current.hour
 
                 # 深夜時間帯（22時～5時）の判定
-                is_night = hour >= 22 or hour < 5
+                is_night = hour >= NIGHT_HOURS_START or hour < NIGHT_HOURS_END
 
                 if is_night:
                     night_hours += 1 / 60  # 1分 = 1/60時間
@@ -265,4 +277,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()  # ルートの空ウィンドウを消す（必要なら外してOK）
     SalaryWindow(root)  # これを呼ばないと画面は出ない
+    root.mainloop()
     root.mainloop()
