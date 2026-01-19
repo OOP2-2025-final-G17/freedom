@@ -25,9 +25,17 @@ class CalendarWindow(tk.Frame):
         self.year = tk.IntVar(value=today.year)
         self.month = tk.IntVar(value=today.month)
         self.selected_date: dt.date | None = None
+        self.selected_button: tk.Widget | None = None  # 追加：選択中のボタンを追跡
 
         # カスタムスタイルの設定
         style = ttk.Style()
+        style.theme_use("default")
+        style.configure(
+            "Today.TButton", background="#ffffcc"
+        )  # 今日の日付用（薄い黄色）
+        style.configure(
+            "Selected.TButton", background="#ccccff"
+        )  # 選択日付用（薄い青色）
 
         # ラベル用スタイル
         style.configure("Saturday.TLabel", foreground="blue")
@@ -36,6 +44,7 @@ class CalendarWindow(tk.Frame):
         # ボタン用スタイル
         style.configure("Saturday.TButton", foreground="blue")
         style.configure("Sunday.TButton", foreground="red")
+        style.configure("task.TButton", background="black")
 
         self.current_items: list[dict] = []
         self.dates_with_schedules: set = set()  # 予定がある日付を記録
@@ -149,6 +158,11 @@ class CalendarWindow(tk.Frame):
                 # スタイル名を決定
                 style_name = ""
                 weekday = day.weekday()  # 0=月曜, 6=日曜
+
+                if is_today:
+                    style_name = "Today.TButton"
+                if is_selected:
+                    style_name = "Selected.TButton"
 
                 if is_current_month:
                     if weekday == 6:  # 日曜日
@@ -347,21 +361,49 @@ class CalendarWindow(tk.Frame):
         except Exception:
             from change import ChangeWindow  # type: ignore
 
+        self.result.delete("1.0", tk.END)
+        self.result.insert(tk.END, "更新ダイアログを開きました。\n")
+
         # 更新完了時のコールバック
-        def on_update_success():
+        def on_update_success(request_id):
             self.result.delete("1.0", tk.END)
-            self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
+            self.result.insert(
+                tk.END, "更新リクエストを送信しました。レスポンスを待機中...\n"
+            )
             self.update_idletasks()
-            # 更新成功後、予定を再取得
-            self.request_day()
+
+            # レスポンスが返ってくるまで待機
+            resp = wait_for_response(
+                "update_schedule",
+                request_id,
+                timeout=10.0,
+                root=self.master,
+                debug=True,
+            )
+
+            if resp and resp.get("ok") is True:
+                self.result.delete("1.0", tk.END)
+                self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
+                self.update_idletasks()
+                # 更新成功後、予定を再取得
+                self.request_day()
+            elif resp and resp.get("ok") is False:
+                self.result.delete("1.0", tk.END)
+                error = resp.get("error", {})
+                self.result.insert(
+                    tk.END, f"更新エラー: {error.get('message', '不明なエラー')}\n"
+                )
+            else:
+                self.result.delete("1.0", tk.END)
+                self.result.insert(
+                    tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
+                )
 
         ChangeWindow(
             self.winfo_toplevel(),
             existing_schedule=target,
             on_success=on_update_success,
         )
-        self.result.delete("1.0", tk.END)
-        self.result.insert(tk.END, "更新ダイアログを開きました。\n")
 
     def request_month(self) -> None:
         """月全体の予定を取得する"""
