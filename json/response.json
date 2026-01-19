@@ -1,10 +1,12 @@
 {
   "ok": true,
-  "action": "get_all_schedules",
+  "action": "get_monthly_schedule",
   "data": {
+    "year": 2026,
+    "month": 1,
     "schedules": [
       {
-        "id": 7,
+        "id": 1,
         "mode": "A",
         "name": "f",
         "start_date": "2026-01-08",
@@ -40,15 +42,33 @@
         "end_time": "18:00"
       },
       {
+        "id": 7,
+        "mode": "B",
+        "name": "test_wage1",
+        "start_date": "2026-01-16",
+        "start_time": "09:00",
+        "end_date": "2026-01-16",
+        "end_time": "18:00"
+      },
+      {
+        "id": 9,
+        "mode": "B",
+        "name": "test remake",
+        "start_date": "2026-01-18",
+        "start_time": "09:00",
+        "end_date": "2026-01-18",
+        "end_time": "18:00"
+      },
+      {
         "id": 8,
         "mode": "B",
-        "name": "test_b3",
-        "start_date": "2026-01-19",
-        "start_time": "09:00",
+        "name": "test_night",
+        "start_date": "2026-01-18",
+        "start_time": "18:00",
         "end_date": "2026-01-19",
-        "end_time": "18:00"
+        "end_time": "01:00"
       }
     ]
   },
-  "_request_id": "54675436-f6f6-41da-9b65-bfa3ee2bddb2"
+  "_request_id": "850a4cce-b527-40d8-88c1-3543c1d3b3dc"
 }

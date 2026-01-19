@@ -65,7 +65,7 @@ class FrontendTestCase(unittest.TestCase):
         # 各ボタンのコールバック呼び出し（ウィンドウ生成）
         menu.open_change()
         # ステータス文言が更新されているか
-        self.assertIn("モード", menu.status_var.get())
+        self.assertIn("予定の追加/変更", menu.status_var.get())
 
     def test_calendar_request(self):
         from front_end.calender import CalendarWindow
@@ -107,7 +107,7 @@ class FrontendTestCase(unittest.TestCase):
 
         self.assertTrue(os.path.exists(REQ_PATH))
         data = self._read_json(REQ_PATH)
-        self.assertEqual(data.get("action"), "save_schedule")
+        self.assertEqual(data.get("action"), "add_schedule")
         self.assertEqual(data.get("mode"), "A")
         self.assertEqual(data.get("name"), "講義A")
         self.assertEqual(data.get("start_date"), "2026-01-08")

@@ -1,4 +1,6 @@
 {
-  "action": "get_all_schedules",
-  "_request_id": "54675436-f6f6-41da-9b65-bfa3ee2bddb2"
+  "action": "get_monthly_schedule",
+  "year": 2026,
+  "month": 1,
+  "_request_id": "850a4cce-b527-40d8-88c1-3543c1d3b3dc"
 }

@@ -30,12 +30,12 @@ def validate_datetime_range(
         start_dt = datetime.fromisoformat(f"{start_date_str}T{start_time_str}:00")
         end_dt = datetime.fromisoformat(f"{end_date_str}T{end_time_str}:00")
 
-        # 同一日付で終了時刻が開始時刻より前
-        if start_date_str == end_date_str and end_dt < start_dt:
+        # 同一日付で終了時刻が開始時刻以前
+        if start_date_str == end_date_str and end_dt <= start_dt:
             return False, "同じ日付のときは終了時刻は開始時刻より後にしてください。"
 
-        # 終了が開始より前
-        if end_dt < start_dt:
+        # 終了が開始以前
+        if end_dt <= start_dt:
             return False, "終了日時は開始日時より後である必要があります。"
 
         return True, ""

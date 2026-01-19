@@ -201,7 +201,7 @@ class ChangeWindow(tk.Toplevel):
                 "end_time": end_time_str,
             }
 
-        write_request(payload)
+        request_id = write_request(payload)
         if self._existing is not None:
             self.status_var.set(
                 "更新リクエストを送信しました。バックエンドで処理してください。"
@@ -215,9 +215,9 @@ class ChangeWindow(tk.Toplevel):
             )
             messagebox.showinfo("送信", "request.json に書き込みました。")
 
-        # コールバックを実行して親画面を更新
+        # コールバックを実行して親画面を更新（request_idを渡す）
         if self._on_success:
-            self._on_success()
+            self._on_success(request_id)
 
         # ダイアログを閉じる
         self.destroy()
