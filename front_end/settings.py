@@ -128,13 +128,12 @@ class SettingsWindow(tk.Toplevel):
         entry.pack(side=tk.LEFT, padx=10)
 
         # 現在の値を表示
-        current_value = self.current_settings.get(key)
+        current_value = self.current_settings.get(key, min_val)  # デフォルト値を指定
         if is_float:
             entry.insert(0, f"{float(current_value):.2f}")
         else:
             entry.insert(0, str(int(current_value)))
 
-        # 検証用のスピンボックスの代わりにEntry を使用
         # 値の範囲表示
         ttk.Label(row, text=f"({min_val}-{max_val})", foreground="#999").pack(
             side=tk.LEFT
@@ -195,9 +194,9 @@ class SettingsWindow(tk.Toplevel):
 
     def _refresh_display(self) -> None:
         """画面を更新"""
-        for key, (entry, is_float, _, _) in self._entries.items():
+        for key, (entry, is_float, min_val, _) in self._entries.items():
             entry.delete(0, tk.END)
-            value = self.current_settings.get(key)
+            value = self.current_settings.get(key, min_val)  # デフォルト値を指定
             if is_float:
                 entry.insert(0, f"{float(value):.2f}")
             else:
