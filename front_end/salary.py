@@ -14,6 +14,7 @@ from .utils.constants import (
     SALARY_WINDOW_WIDTH,
     SALARY_WINDOW_HEIGHT,
 )
+from .utils.settings_manager import get_settings_manager
 
 
 class SalaryWindow(tk.Toplevel):
@@ -52,12 +53,21 @@ class SalaryWindow(tk.Toplevel):
         wage_frame.pack(pady=5)
 
         tk.Label(wage_frame, text="通常時給:").pack(side=tk.LEFT, padx=5)
-        self.wage_var = tk.IntVar(value=DEFAULT_WAGE)
+
+        # 設定から時給を取得
+        settings_manager = get_settings_manager()
+        default_hourly_wage = settings_manager.get_setting("hourly_wage")
+
+        self.wage_var = tk.IntVar(value=default_hourly_wage)
         tk.Entry(wage_frame, textvariable=self.wage_var, width=10).pack(side=tk.LEFT)
         tk.Label(wage_frame, text="円").pack(side=tk.LEFT, padx=5)
 
         tk.Label(wage_frame, text="深夜割増率:").pack(side=tk.LEFT, padx=(20, 5))
-        self.night_rate_var = tk.DoubleVar(value=NIGHT_RATE_MULTIPLIER)
+
+        # 設定から深夜割増率を取得
+        default_night_rate = settings_manager.get_setting("night_rate")
+
+        self.night_rate_var = tk.DoubleVar(value=default_night_rate)
         tk.Entry(wage_frame, textvariable=self.night_rate_var, width=8).pack(
             side=tk.LEFT
         )

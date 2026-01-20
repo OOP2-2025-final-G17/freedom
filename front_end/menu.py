@@ -34,6 +34,11 @@ class MainMenu(tk.Frame):
         )
         self.btn_import.pack(fill=tk.X, pady=4)
 
+        self.btn_settings = ttk.Button(
+            btn_frame, text="ユーザー設定", command=self.open_settings
+        )
+        self.btn_settings.pack(fill=tk.X, pady=4)
+
         self.status_var = tk.StringVar(value="準備完了。操作を選んでください。")
         status = ttk.Label(self, textvariable=self.status_var, foreground="#555")
         status.pack(side=tk.BOTTOM, anchor=tk.W, padx=8, pady=6)
@@ -71,6 +76,16 @@ class MainMenu(tk.Frame):
             self.status_var.set("データインポートを実行しました。")
         else:
             self.status_var.set("カレンダーが設定されていません。")
+
+    def open_settings(self) -> None:
+        """設定ウィンドウを開く"""
+        try:
+            from .settings import SettingsWindow
+        except Exception:
+            from settings import SettingsWindow  # type: ignore
+
+        SettingsWindow(self.winfo_toplevel())
+        self.status_var.set("ユーザー設定を開きました。")
 
 
 def main() -> None:

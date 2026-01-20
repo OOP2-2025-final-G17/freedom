@@ -12,6 +12,9 @@ from .request_handler import write_request, wait_for_response, try_read_response
 # データI/O機能のインポート
 from .utils.data_io import export_schedules, import_schedules
 
+# 設定管理のインポート
+from .utils.settings_manager import get_settings_manager
+
 # デバッグモード（False にするとログが出ない）
 DEBUG = False
 
@@ -26,6 +29,9 @@ class CalendarWindow(tk.Frame):
         self.month = tk.IntVar(value=today.month)
         self.selected_date: dt.date | None = None
         self.selected_button: tk.Widget | None = None  # 追加：選択中のボタンを追跡
+
+        # 設定マネージャーのインスタンスを取得
+        self.settings_manager = get_settings_manager()
 
         # カスタムスタイルの設定
         style = ttk.Style()
@@ -93,7 +99,7 @@ class CalendarWindow(tk.Frame):
 
         self.tree = ttk.Treeview(
             list_frame,
-            columns=("mode", "name", "start", "end"),
+            columns=("mode", "name", "start", "end", "commute_time"),
             show="headings",
             height=8,
         )
@@ -101,10 +107,12 @@ class CalendarWindow(tk.Frame):
         self.tree.heading("name", text="タイトル")
         self.tree.heading("start", text="開始")
         self.tree.heading("end", text="終了")
+        self.tree.heading("commute_time", text="外出時間")
         self.tree.column("mode", width=60, anchor="center")
-        self.tree.column("name", width=160, anchor="w")
-        self.tree.column("start", width=140, anchor="center")
-        self.tree.column("end", width=140, anchor="center")
+        self.tree.column("name", width=140, anchor="w")
+        self.tree.column("start", width=120, anchor="center")
+        self.tree.column("end", width=120, anchor="center")
+        self.tree.column("commute_time", width=80, anchor="center")
         self.tree.pack(fill=tk.BOTH, expand=True, padx=4, pady=(4, 6))
 
         op_frame = ttk.Frame(list_frame)
@@ -121,6 +129,37 @@ class CalendarWindow(tk.Frame):
         self.result.pack(fill=tk.BOTH, expand=False, padx=10, pady=6)
 
         self.draw_calendar()
+
+    def calculate_departure_time(self, schedule: dict) -> str:
+        """スケジュール情報から外出時間（開始時間から通勤/通学時間を引いた時刻）を計算して表示する
+
+        モードBの場合は通勤時間を開始時刻から引く
+        モードA（学校・授業）の場合は通学時間を開始時刻から引く
+        その他の場合は通勤時間を開始時刻から引く
+        """
+        mode = schedule.get("mode", "-")
+
+        try:
+            # スケジュールの開始時刻を取得
+            start_datetime = dt.datetime.strptime(
+                f"{schedule['start_date']} {schedule['start_time']}", "%Y-%m-%d %H:%M"
+            )
+
+            # モードに応じて通勤通学時間を取得
+            if mode == "B":  # バイトモード
+                commute_minutes = self.settings_manager.get_setting("commute_time")
+            elif mode == "A":  # 学校・授業モード
+                commute_minutes = self.settings_manager.get_setting("school_time")
+            else:  # その他（仕事など）
+                commute_minutes = self.settings_manager.get_setting("commute_time")
+
+            # 開始時刻から通勤/通学時間を引いた時刻を計算
+            departure_datetime = start_datetime - dt.timedelta(minutes=commute_minutes)
+
+            # HH:MM形式で返す
+            return departure_datetime.strftime("%H:%M")
+        except (ValueError, KeyError):
+            return "-"
 
     def draw_calendar(self) -> None:
         # 既存ウィジェット削除
@@ -269,7 +308,10 @@ class CalendarWindow(tk.Frame):
                         name = sc.get("name", "")
                         start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
                         end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
-                        self.tree.insert("", tk.END, values=(mode, name, start, end))
+                        departure_time = self.calculate_departure_time(sc)
+                        self.tree.insert(
+                            "", tk.END, values=(mode, name, start, end, departure_time)
+                        )
                         self.current_items.append(sc)
                     self.result.insert(
                         tk.END, f"{len(items)}件の予定を取得しました。\n"
@@ -445,7 +487,10 @@ class CalendarWindow(tk.Frame):
                     name = sc.get("name", "")
                     start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
                     end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
-                    self.tree.insert("", tk.END, values=(mode, name, start, end))
+                    departure_time = self.calculate_departure_time(sc)
+                    self.tree.insert(
+                        "", tk.END, values=(mode, name, start, end, departure_time)
+                    )
                     self.current_items.append(sc)
                 self.result.insert(
                     tk.END, f"{y}年{m}月の予定を{len(items)}件取得しました。\n"
@@ -459,6 +504,14 @@ class CalendarWindow(tk.Frame):
             self.result.insert(
                 tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
             )
+
+    def export_data(self) -> None:
+        """スケジュールデータをJSONファイルにエクスポート"""
+        export_schedules(self.result, self.winfo_toplevel())
+
+    def import_data(self) -> None:
+        """JSONファイルからスケジュールデータをインポート"""
+        import_schedules(self.result, self.winfo_toplevel())
 
 
 if __name__ == "__main__":

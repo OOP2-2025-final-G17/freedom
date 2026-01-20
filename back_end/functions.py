@@ -1,7 +1,7 @@
 from datetime import datetime, date, time
 from typing import Dict, Any, List, cast
 
-from back_end.db.db import db, Schedule
+from back_end.db.db import db, Schedule, is_database_exists
 
 
 def ok(action: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -61,6 +61,9 @@ def add_schedule(payload: dict) -> dict:
 def get_schedule(payload: dict) -> dict:
     action = "get_schedule"
 
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
+
     if "date" not in payload:
         return ng(action, "BAD_REQUEST", "date required")
 
@@ -88,6 +91,9 @@ def get_schedule(payload: dict) -> dict:
 def delete_schedule(payload: dict) -> dict:
     action = "delete_schedule"
 
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
+
     if "id" not in payload:
         return ng(action, "BAD_REQUEST", "id required")
 
@@ -103,6 +109,9 @@ def delete_schedule(payload: dict) -> dict:
 
 def update_schedule(payload: dict) -> dict:
     action = "update_schedule"
+
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
 
     if "id" not in payload:
         return ng(action, "BAD_REQUEST", "id required")
@@ -143,6 +152,9 @@ def update_schedule(payload: dict) -> dict:
 
 def get_monthly_schedule_by_mode(payload: dict, mode: str = "B") -> dict:
     action = "get_monthly_schedule_by_mode"
+
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
 
     if "year" not in payload or "month" not in payload:
         return ng(action, "BAD_REQUEST", "year and month required")
@@ -192,6 +204,9 @@ def get_monthly_schedule(payload: dict) -> dict:
     """月全体の予定を取得（モード指定なし）"""
     action = "get_monthly_schedule"
 
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
+
     if "year" not in payload or "month" not in payload:
         return ng(action, "BAD_REQUEST", "year and month required")
 
@@ -233,6 +248,9 @@ def get_all_schedules(payload: dict) -> dict:
     """全ての予定を取得（エクスポート用）"""
     action = "get_all_schedules"
 
+    if not is_database_exists():
+        return ng(action, "DATABASE_NOT_FOUND", "database not initialized")
+
     db.connect(reuse_if_open=True)
 
     query = Schedule.select().order_by(Schedule.start_date, Schedule.start_time)
@@ -256,36 +274,46 @@ def import_schedules(payload: dict) -> dict:
     if not isinstance(schedules, list):
         return ng(action, "BAD_REQUEST", "schedules must be a list")
 
+    # データベース接続を明示的に初期化（古い接続をクリア）
+    try:
+        db.close()
+    except Exception:
+        pass
     db.connect(reuse_if_open=True)
+
+    # テーブルが存在しなければ作成
+    try:
+        db.create_tables([Schedule], safe=True)
+    except Exception:
+        pass
 
     imported_count = 0
     errors = []
 
-    with db.atomic():
-        for idx, sc in enumerate(schedules):
-            try:
-                sd = datetime.strptime(sc["start_date"], "%Y-%m-%d").date()
-                st = datetime.strptime(sc["start_time"], "%H:%M").time()
-                ed = datetime.strptime(sc["end_date"], "%Y-%m-%d").date()
-                et = datetime.strptime(sc["end_time"], "%H:%M").time()
+    for idx, sc in enumerate(schedules):
+        try:
+            sd = datetime.strptime(sc["start_date"], "%Y-%m-%d").date()
+            st = datetime.strptime(sc["start_time"], "%H:%M").time()
+            ed = datetime.strptime(sc["end_date"], "%Y-%m-%d").date()
+            et = datetime.strptime(sc["end_time"], "%H:%M").time()
 
-                if datetime.combine(ed, et) <= datetime.combine(sd, st):
-                    errors.append(f"Index {idx}: end must be after start")
-                    continue
-
-                Schedule.create(
-                    mode=sc.get("mode"),
-                    name=sc.get("name"),
-                    start_date=sd,
-                    start_time=st,
-                    end_date=ed,
-                    end_time=et,
-                )
-                imported_count += 1
-
-            except Exception as e:
-                errors.append(f"Index {idx}: {str(e)}")
+            if datetime.combine(ed, et) <= datetime.combine(sd, st):
+                errors.append(f"Index {idx}: end must be after start")
                 continue
+
+            Schedule.create(
+                mode=sc.get("mode"),
+                name=sc.get("name"),
+                start_date=sd,
+                start_time=st,
+                end_date=ed,
+                end_time=et,
+            )
+            imported_count += 1
+
+        except Exception as e:
+            errors.append(f"Index {idx}: {str(e)}")
+            continue
 
     return ok(
         action,
