@@ -6,6 +6,11 @@ MODELS = [
 ]
 
 def initialize_database():
-    db.connect()
-    db.create_tables(MODELS, safe=True)
-    db.close()
+    """Initialize database tables"""
+    try:
+        db.connect(reuse_if_open=True)
+        db.create_tables(MODELS, safe=True)
+        db.close()
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
+        raise

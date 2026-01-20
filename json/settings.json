@@ -1,0 +1,8 @@
+{
+  "commute_time": 30,
+  "school_time": 60,
+  "hourly_wage": 1200,
+  "night_rate": 1.5,
+  "night_start": 22,
+  "night_end": 5
+}

@@ -1,157 +1,22 @@
-import os
-import json
 import datetime as dt
 import calendar as pycal
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import time
-import uuid
+import json
+import os
+
+# 共通のリクエスト送信モジュールをインポート
+from .request_handler import write_request, wait_for_response, try_read_response
+
+# データI/O機能のインポート
+from .utils.data_io import export_schedules, import_schedules
+
+# 設定管理のインポート
+from .utils.settings_manager import get_settings_manager
 
 # デバッグモード（False にするとログが出ない）
 DEBUG = False
-
-def _paths():
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    req = os.path.join(base, "json", "request.json")
-    res = os.path.join(base, "json", "response.json")
-    return req, res
-
-def write_request(payload: dict) -> str:
-    """リクエストを送信し、リクエストIDを返す"""
-    req, res = _paths()
-    os.makedirs(os.path.dirname(req), exist_ok=True)
-
-    # リクエスト送信前に古いレスポンスを削除
-    try:
-        if os.path.exists(res):
-            os.remove(res)
-        time.sleep(0.2)  # 削除完了を確実にする
-    except Exception:
-        pass
-
-    # リクエストに一意のIDをつける
-    request_id = str(uuid.uuid4())
-    payload["_request_id"] = request_id
-
-    with open(req, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-    return request_id
-
-
-def try_read_response() -> dict | None:
-    _, res = _paths()
-    if not os.path.exists(res):
-        return None
-    try:
-        with open(res, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def wait_for_response(
-    expected_action: str,
-    expected_request_id: str,
-    expected_data_validator=None,
-    timeout: float = 10.0,
-    root=None,
-) -> dict | None:
-    """指定されたリクエストIDのレスポンスまで待機する"""
-    import sys
-    from datetime import datetime
-
-    _, res = _paths()
-    start_time = time.time()
-    print(
-        f"[{datetime.now()}] wait_for_response started: action={expected_action}, request_id={expected_request_id}",
-        file=sys.stderr,
-        flush=True,
-    )
-
-    while time.time() - start_time < timeout:
-        # Tkinter event loop を処理（バックエンドが実行されるようにする）
-        if root:
-            root.update()
-
-        elapsed = time.time() - start_time
-        # ファイルが存在するかチェック
-        if not os.path.exists(res):
-            print(
-                f"[{datetime.now()}] [{elapsed:.2f}s] Response file not found",
-                file=sys.stderr,
-                flush=True,
-            )
-            time.sleep(0.05)
-            continue
-
-        try:
-            time.sleep(0.05)  # ファイル書き込み完了を待つ
-            with open(res, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-                print(
-                    f"[{datetime.now()}] [{elapsed:.2f}s] Response content: {content[:100]}",
-                    file=sys.stderr,
-                    flush=True,
-                )
-                if not content:  # 空ファイルの場合はスキップ
-                    print(
-                        f"[{datetime.now()}] [{elapsed:.2f}s] Response file is empty",
-                        file=sys.stderr,
-                        flush=True,
-                    )
-                    time.sleep(0.05)
-                    continue
-
-                resp = json.loads(content)
-                action = resp.get("action")
-                request_id = resp.get("_request_id")
-
-                print(
-                    f"[{datetime.now()}] [{elapsed:.2f}s] Parsed response: action={action}, request_id={request_id}",
-                    file=sys.stderr,
-                    flush=True,
-                )
-
-                # 期待されるアクション＆リクエストIDのレスポンスか確認
-                if action == expected_action and request_id == expected_request_id:
-                    print(
-                        f"[{datetime.now()}] [{elapsed:.2f}s] Matching response found!",
-                        file=sys.stderr,
-                        flush=True,
-                    )
-                    # 追加の検証があればチェック
-                    if expected_data_validator is None or expected_data_validator(resp):
-                        return resp
-                    else:
-                        # 検証失敗：異なるデータの場合は待機を続ける
-                        print(
-                            f"[{datetime.now()}] [{elapsed:.2f}s] Validator failed",
-                            file=sys.stderr,
-                            flush=True,
-                        )
-                        time.sleep(0.05)
-                else:
-                    # 異なるリクエストIDまたはアクションの場合は無視して待機を続ける
-                    print(
-                        f"[{datetime.now()}] [{elapsed:.2f}s] Not matching (expected action={expected_action}, request_id={expected_request_id})",
-                        file=sys.stderr,
-                        flush=True,
-                    )
-                    time.sleep(0.05)
-
-        except (json.JSONDecodeError, IOError) as e:
-            # JSONパースエラーまたはファイル読み込みエラーは無視して再試行
-            print(
-                f"[{datetime.now()}] [{elapsed:.2f}s] Error reading response: {e}",
-                file=sys.stderr,
-                flush=True,
-            )
-            time.sleep(0.05)
-            continue
-
-    print(f"[{datetime.now()}] wait_for_response timeout!", file=sys.stderr, flush=True)
-    return None
 
 
 class CalendarWindow(tk.Frame):
@@ -165,16 +30,31 @@ class CalendarWindow(tk.Frame):
         self.selected_date: dt.date | None = None
         self.selected_button: tk.Widget | None = None  # 追加：選択中のボタンを追跡
 
-        # カスタムスタイルの設定（修正）
+        # 設定マネージャーのインスタンスを取得
+        self.settings_manager = get_settings_manager()
+
+        # カスタムスタイルの設定
         style = ttk.Style()
-        style.configure("Today.TButton", background="#ffffcc")  # 今日の日付用（薄い黄色）
-        style.configure("Selected.TButton", background="#ccccff")  # 選択日付用（薄い青色）
-        # 追加：土曜日・日曜日用のスタイル
-        style.configure("Saturday.TButton", foreground="blue")
-        style.configure("Sunday.TButton", foreground="red")
+        style.theme_use("default")
+        style.configure(
+            "Today.TButton", background="#ffffcc"
+        )  # 今日の日付用（薄い黄色）
+        style.configure(
+            "Selected.TButton", background="#ccccff"
+        )  # 選択日付用（薄い青色）
+        style.configure("TButton", background="#f0f0f0")  # 通常日付用)
+
+        # ラベル用スタイル
         style.configure("Saturday.TLabel", foreground="blue")
         style.configure("Sunday.TLabel", foreground="red")
+
+        # ボタン用スタイル
+        style.configure("Saturday.TButton", foreground="blue")
+        style.configure("Sunday.TButton", foreground="red")
+        style.configure("task.TButton", background="black")
+
         self.current_items: list[dict] = []
+        self.dates_with_schedules: set = set()  # 予定がある日付を記録
 
         control = ttk.Frame(self)
         control.pack(fill=tk.X, padx=10, pady=8)
@@ -183,9 +63,7 @@ class CalendarWindow(tk.Frame):
         prev_btn.pack(side=tk.LEFT)
 
         # 追加：「今日」ボタン
-        today_btn = ttk.Button(
-            control, text="今日", width=4, command=self.go_to_today
-        )
+        today_btn = ttk.Button(control, text="今日", width=4, command=self.go_to_today)
         today_btn.pack(side=tk.LEFT, padx=5)
 
         self.title_var = tk.StringVar()
@@ -208,7 +86,11 @@ class CalendarWindow(tk.Frame):
 
         ttk.Button(
             action_frame, text="この日の予定を取得", command=self.request_day
-        ).pack(side=tk.RIGHT)
+        ).pack(side=tk.RIGHT, padx=5)
+
+        ttk.Button(
+            action_frame, text="月全体の予定を取得", command=self.request_month
+        ).pack(side=tk.RIGHT, padx=5)
 
         # self.result = tk.Text(self, height=10)
         # 予定リストと操作ボタン
@@ -217,7 +99,7 @@ class CalendarWindow(tk.Frame):
 
         self.tree = ttk.Treeview(
             list_frame,
-            columns=("mode", "name", "start", "end"),
+            columns=("mode", "name", "start", "end", "commute_time"),
             show="headings",
             height=8,
         )
@@ -225,10 +107,12 @@ class CalendarWindow(tk.Frame):
         self.tree.heading("name", text="タイトル")
         self.tree.heading("start", text="開始")
         self.tree.heading("end", text="終了")
+        self.tree.heading("commute_time", text="外出時間")
         self.tree.column("mode", width=60, anchor="center")
-        self.tree.column("name", width=160, anchor="w")
-        self.tree.column("start", width=140, anchor="center")
-        self.tree.column("end", width=140, anchor="center")
+        self.tree.column("name", width=140, anchor="w")
+        self.tree.column("start", width=120, anchor="center")
+        self.tree.column("end", width=120, anchor="center")
+        self.tree.column("commute_time", width=80, anchor="center")
         self.tree.pack(fill=tk.BOTH, expand=True, padx=4, pady=(4, 6))
 
         op_frame = ttk.Frame(list_frame)
@@ -246,6 +130,37 @@ class CalendarWindow(tk.Frame):
 
         self.draw_calendar()
 
+    def calculate_departure_time(self, schedule: dict) -> str:
+        """スケジュール情報から外出時間（開始時間から通勤/通学時間を引いた時刻）を計算して表示する
+
+        モードBの場合は通勤時間を開始時刻から引く
+        モードA（学校・授業）の場合は通学時間を開始時刻から引く
+        その他の場合は通勤時間を開始時刻から引く
+        """
+        mode = schedule.get("mode", "-")
+
+        try:
+            # スケジュールの開始時刻を取得
+            start_datetime = dt.datetime.strptime(
+                f"{schedule['start_date']} {schedule['start_time']}", "%Y-%m-%d %H:%M"
+            )
+
+            # モードに応じて通勤通学時間を取得
+            if mode == "B":  # バイトモード
+                commute_minutes = self.settings_manager.get_setting("commute_time")
+            elif mode == "A":  # 学校・授業モード
+                commute_minutes = self.settings_manager.get_setting("school_time")
+            else:  # その他（仕事など）
+                commute_minutes = self.settings_manager.get_setting("commute_time")
+
+            # 開始時刻から通勤/通学時間を引いた時刻を計算
+            departure_datetime = start_datetime - dt.timedelta(minutes=commute_minutes)
+
+            # HH:MM形式で返す
+            return departure_datetime.strftime("%H:%M")
+        except (ValueError, KeyError):
+            return "-"
+
     def draw_calendar(self) -> None:
         # 既存ウィジェット削除
         for w in self.grid_frame.winfo_children():
@@ -259,62 +174,63 @@ class CalendarWindow(tk.Frame):
         for i, wd in enumerate(weekdays):
             # 土曜日と日曜日の色分け（修正）
             if i == 5:  # 土曜日
-                label = ttk.Label(self.grid_frame, text=wd, anchor="center", style="Saturday.TLabel")
+                label = ttk.Label(
+                    self.grid_frame, text=wd, anchor="center", style="Saturday.TLabel"
+                )
             elif i == 6:  # 日曜日
-                label = ttk.Label(self.grid_frame, text=wd, anchor="center", style="Sunday.TLabel")
+                label = ttk.Label(
+                    self.grid_frame, text=wd, anchor="center", style="Sunday.TLabel"
+                )
             else:
                 label = ttk.Label(self.grid_frame, text=wd, anchor="center")
             label.grid(row=0, column=i, sticky="nsew")
 
         cal = pycal.Calendar(firstweekday=0)  # 0: Monday
         row = 1
-        today = dt.date.today()  # 追加：今日の日付を取得
-        
+        today = dt.date.today()
+
         for week in cal.monthdatescalendar(y, m):
             for col, day in enumerate(week):
                 is_current_month = day.month == m
-                is_today = day == today  # 追加：今日かどうか
-                is_selected = self.selected_date == day  # 追加：選択中かどうか
-                
-                # スタイル名を決定（修正）
+                is_today = day == today
+                is_selected = self.selected_date == day
+
+                # スタイル名を決定
                 style_name = ""
                 weekday = day.weekday()  # 0=月曜, 6=日曜
-                
+
+                # スタイルの優先順位（後のものが優先）
+                # 1. 基本スタイル（土日の場合はその色）
                 if is_current_month:
                     if weekday == 6:  # 日曜日
                         style_name = "Sunday.TButton"
                     elif weekday == 5:  # 土曜日
                         style_name = "Saturday.TButton"
-                
-                # 今日の日付または選択中の日付の場合は優先
-                if is_today and is_current_month:
-                    style_name = "Today.TButton"
-                if is_selected and is_current_month:
-                    style_name = "Selected.TButton"
-                
-                # ボタンを作成
-                if style_name:
-                    btn = ttk.Button(
-                        self.grid_frame,
-                        text=str(day.day),
-                        width=4,
-                        command=lambda d=day: self.select_date(d),
-                        style=style_name,
-                    )
+                    else:
+                        style_name = "TButton"
                 else:
-                    btn = ttk.Button(
-                        self.grid_frame,
-                        text=str(day.day),
-                        width=4,
-                        command=lambda d=day: self.select_date(d),
-                    )
-                
-                if is_selected and is_current_month:
-                    self.selected_button = btn
-                
+                    style_name = "TButton"
+
+                # 2. 今日の場合は Today スタイル
+                if is_today:
+                    style_name = "Today.TButton"
+
+                # 3. 選択状態の場合は Selected スタイル（最優先）
+                if is_selected:
+                    style_name = "Selected.TButton"
+
+                # ボタンを作成
+                btn = ttk.Button(
+                    self.grid_frame,
+                    text=str(day.day),
+                    width=4,
+                    command=lambda d=day: self.select_date(d),
+                    style=style_name if style_name else "TButton",
+                )
+
                 if not is_current_month:
-                    btn.state(["disabled"])  # 当月以外は無効
-                    
+                    btn.state(["disabled"])
+
                 btn.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
             row += 1
 
@@ -382,6 +298,7 @@ class CalendarWindow(tk.Frame):
             == expected_date,
             timeout=10.0,
             root=self.master,
+            debug=True,
         )
 
         # ツリー更新
@@ -400,7 +317,10 @@ class CalendarWindow(tk.Frame):
                         name = sc.get("name", "")
                         start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
                         end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
-                        self.tree.insert("", tk.END, values=(mode, name, start, end))
+                        departure_time = self.calculate_departure_time(sc)
+                        self.tree.insert(
+                            "", tk.END, values=(mode, name, start, end, departure_time)
+                        )
                         self.current_items.append(sc)
                     self.result.insert(
                         tk.END, f"{len(items)}件の予定を取得しました。\n"
@@ -431,9 +351,6 @@ class CalendarWindow(tk.Frame):
         return index
 
     def delete_selected(self) -> None:
-        if not self.selected_date:
-            messagebox.showinfo("情報", "日付を選択してください。")
-            return
         idx = self._get_selection_index()
         if idx is None:
             return
@@ -461,14 +378,17 @@ class CalendarWindow(tk.Frame):
 
         # レスポンスが返ってくるまで待機
         resp = wait_for_response(
-            "delete_schedule", request_id, timeout=10.0, root=self.master
+            "delete_schedule", request_id, timeout=10.0, root=self.master, debug=True
         )
 
         if resp and resp.get("ok") is True:
             self.result.insert(tk.END, "削除しました。予定を再取得しています...\n")
             self.update_idletasks()
-            # 削除成功後、予定を再取得
-            self.request_day()
+            # 削除成功後、表示モードに応じて予定を再取得
+            if self.selected_date:
+                self.request_day()
+            else:
+                self.request_month()
         elif resp and resp.get("ok") is False:
             error = resp.get("error", {})
             self.result.insert(
@@ -480,9 +400,6 @@ class CalendarWindow(tk.Frame):
             )
 
     def update_selected(self) -> None:
-        if not self.selected_date:
-            messagebox.showinfo("情報", "日付を選択してください。")
-            return
         idx = self._get_selection_index()
         if idx is None:
             return
@@ -493,17 +410,133 @@ class CalendarWindow(tk.Frame):
         except Exception:
             from change import ChangeWindow  # type: ignore
 
-        # 更新完了時のコールバック
-        def on_update_success():
-            self.result.delete("1.0", tk.END)
-            self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
-            self.update_idletasks()
-            # 更新成功後、予定を再取得
-            self.request_day()
-
-        ChangeWindow(self.winfo_toplevel(), existing_schedule=target, on_success=on_update_success)
         self.result.delete("1.0", tk.END)
         self.result.insert(tk.END, "更新ダイアログを開きました。\n")
+
+        # 更新完了時のコールバック
+        def on_update_success(request_id):
+            self.result.delete("1.0", tk.END)
+            self.result.insert(
+                tk.END, "更新リクエストを送信しました。レスポンスを待機中...\n"
+            )
+            self.update_idletasks()
+
+            # レスポンスが返ってくるまで待機
+            resp = wait_for_response(
+                "update_schedule",
+                request_id,
+                timeout=10.0,
+                root=self.master,
+                debug=True,
+            )
+
+            if resp and resp.get("ok") is True:
+                self.result.delete("1.0", tk.END)
+                self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
+                self.update_idletasks()
+                # 更新成功後、表示モードに応じて予定を再取得
+                if self.selected_date:
+                    self.request_day()
+                else:
+                    self.request_month()
+            elif resp and resp.get("ok") is False:
+                self.result.delete("1.0", tk.END)
+                error = resp.get("error", {})
+                self.result.insert(
+                    tk.END, f"更新エラー: {error.get('message', '不明なエラー')}\n"
+                )
+            else:
+                self.result.delete("1.0", tk.END)
+                self.result.insert(
+                    tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
+                )
+
+        ChangeWindow(
+            self.winfo_toplevel(),
+            existing_schedule=target,
+            on_success=on_update_success,
+        )
+
+    def request_month(self) -> None:
+        """月全体の予定を取得する"""
+        y, m = self.year.get(), self.month.get()
+
+        payload = {
+            "action": "get_monthly_schedule",
+            "year": y,
+            "month": m,
+        }
+        request_id = write_request(payload)
+        self.result.delete("1.0", tk.END)
+        self.result.insert(tk.END, f"{y}年{m}月の予定を取得中...\n")
+
+        # 更新を強制的に画面に反映
+        self.update_idletasks()
+
+        # レスポンスが返ってくるまで待機
+        resp = wait_for_response(
+            "get_monthly_schedule",
+            request_id,
+            timeout=10.0,
+            root=self.master,
+        )
+
+        # ツリー更新
+        self.tree.delete(*self.tree.get_children())
+        self.current_items = []
+
+        if resp and resp.get("ok") is True:
+            data = resp.get("data", {})
+            items = data.get("schedules", [])
+            if not items:
+                self.result.insert(tk.END, f"{y}年{m}月の予定はありません。\n")
+            else:
+                for sc in items:
+                    mode = sc.get("mode", "-")
+                    name = sc.get("name", "")
+                    start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
+                    end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
+                    departure_time = self.calculate_departure_time(sc)
+                    self.tree.insert(
+                        "", tk.END, values=(mode, name, start, end, departure_time)
+                    )
+                    self.current_items.append(sc)
+                self.result.insert(
+                    tk.END, f"{y}年{m}月の予定を{len(items)}件取得しました。\n"
+                )
+        elif resp and resp.get("ok") is False:
+            error = resp.get("error", {})
+            self.result.insert(
+                tk.END, f"エラー: {error.get('message', '不明なエラー')}\n"
+            )
+        else:
+            self.result.insert(
+                tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
+            )
+
+    def export_data(self) -> None:
+        """スケジュールデータをJSONファイルにエクスポート"""
+        export_schedules(self.result, self.winfo_toplevel())
+
+    def import_data(self) -> None:
+        """JSONファイルからスケジュールデータをインポート"""
+        import_schedules(self.result, self.winfo_toplevel())
+
+    def refresh_tree_display(self) -> None:
+        """Treeview の表示を更新（設定変更時など）"""
+        # 現在のツリービューをクリア
+        self.tree.delete(*self.tree.get_children())
+
+        # 現在保持しているアイテムを再度表示
+        for sc in self.current_items:
+            mode = sc.get("mode", "-")
+            name = sc.get("name", "")
+            start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
+            end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
+            departure_time = self.calculate_departure_time(sc)
+            self.tree.insert(
+                "", tk.END, values=(mode, name, start, end, departure_time)
+            )
 
 
 if __name__ == "__main__":

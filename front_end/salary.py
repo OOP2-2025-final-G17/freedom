@@ -1,90 +1,27 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox, ttk
-import os
-import json
-import time
-import uuid
 from datetime import datetime, timedelta
 
+# 共通のリクエスト送信モジュールをインポート
+from . import request_handler
 
-def _paths():
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    req = os.path.join(base, "json", "request.json")
-    res = os.path.join(base, "json", "response.json")
-    return req, res
-
-
-def write_request(payload: dict) -> str:
-    """リクエストを送信し、リクエストIDを返す"""
-    req, res = _paths()
-    os.makedirs(os.path.dirname(req), exist_ok=True)
-
-    # リクエスト送信前に古いレスポンスを削除
-    try:
-        if os.path.exists(res):
-            os.remove(res)
-        time.sleep(0.2)
-    except Exception:
-        pass
-
-    # リクエストに一意のIDをつける
-    request_id = str(uuid.uuid4())
-    payload["_request_id"] = request_id
-
-    with open(req, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-    return request_id
-
-
-def wait_for_response(
-    expected_action: str,
-    expected_request_id: str,
-    timeout: float = 10.0,
-    root=None,
-) -> dict | None:
-    """指定されたリクエストIDのレスポンスまで待機する"""
-    _, res = _paths()
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        # Tkinter event loop を処理
-        if root:
-            root.update()
-
-        if not os.path.exists(res):
-            time.sleep(0.05)
-            continue
-
-        try:
-            time.sleep(0.05)
-            with open(res, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-                if not content:
-                    time.sleep(0.05)
-                    continue
-
-                resp = json.loads(content)
-                action = resp.get("action")
-                request_id = resp.get("_request_id")
-
-                if action == expected_action and request_id == expected_request_id:
-                    return resp
-                else:
-                    time.sleep(0.05)
-
-        except (json.JSONDecodeError, IOError):
-            time.sleep(0.05)
-            continue
-
-    return None
+# ユーティリティのインポート
+from .utils.constants import (
+    DEFAULT_WAGE,
+    NIGHT_RATE_MULTIPLIER,
+    NIGHT_HOURS_START,
+    NIGHT_HOURS_END,
+    SALARY_WINDOW_WIDTH,
+    SALARY_WINDOW_HEIGHT,
+)
+from .utils.settings_manager import get_settings_manager
 
 
 class SalaryWindow(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.title("給料計算")
-        self.geometry("700x600")
+        self.geometry(f"{SALARY_WINDOW_WIDTH}x{SALARY_WINDOW_HEIGHT}")
         self.master_root = master
         self.salaries = []  # [{'name': str, 'hours': float, 'wage': int}]
         self.fetched_schedules = []  # 取得したスケジュールを保存
@@ -116,12 +53,21 @@ class SalaryWindow(tk.Toplevel):
         wage_frame.pack(pady=5)
 
         tk.Label(wage_frame, text="通常時給:").pack(side=tk.LEFT, padx=5)
-        self.wage_var = tk.IntVar(value=1000)
+
+        # 設定から時給を取得
+        settings_manager = get_settings_manager()
+        default_hourly_wage = settings_manager.get_setting("hourly_wage")
+
+        self.wage_var = tk.IntVar(value=default_hourly_wage)
         tk.Entry(wage_frame, textvariable=self.wage_var, width=10).pack(side=tk.LEFT)
         tk.Label(wage_frame, text="円").pack(side=tk.LEFT, padx=5)
 
         tk.Label(wage_frame, text="深夜割増率:").pack(side=tk.LEFT, padx=(20, 5))
-        self.night_rate_var = tk.DoubleVar(value=1.25)
+
+        # 設定から深夜割増率を取得
+        default_night_rate = settings_manager.get_setting("night_rate")
+
+        self.night_rate_var = tk.DoubleVar(value=default_night_rate)
         tk.Entry(wage_frame, textvariable=self.night_rate_var, width=8).pack(
             side=tk.LEFT
         )
@@ -152,27 +98,6 @@ class SalaryWindow(tk.Toplevel):
 
         self.refresh_list()
 
-    def add_salary(self):
-        name = simpledialog.askstring(
-            "氏名", "従業員名を入力してください:", parent=self
-        )
-        if not name:
-            return
-        try:
-            hours = float(
-                simpledialog.askstring(
-                    "労働時間", "労働時間（h）を入力してください:", parent=self
-                )
-            )
-            wage = int(
-                simpledialog.askstring("時給", "時給を入力してください:", parent=self)
-            )
-        except (TypeError, ValueError):
-            messagebox.showerror("入力エラー", "数値を正しく入力してください。")
-            return
-        self.salaries.append({"name": name, "hours": hours, "wage": wage})
-        self.refresh_list()
-
     def refresh_list(self):
         self.text_widget.delete(1.0, tk.END)
         for s in self.salaries:
@@ -197,8 +122,8 @@ class SalaryWindow(tk.Toplevel):
             "mode": "B",
         }
 
-        request_id = write_request(payload)
-        response = wait_for_response(
+        request_id = request_handler.write_request(payload)
+        response = request_handler.wait_for_response(
             "get_monthly_schedule_by_mode", request_id, root=self.master_root
         )
 
@@ -269,7 +194,7 @@ class SalaryWindow(tk.Toplevel):
                 hour = current.hour
 
                 # 深夜時間帯（22時～5時）の判定
-                is_night = hour >= 22 or hour < 5
+                is_night = hour >= NIGHT_HOURS_START or hour < NIGHT_HOURS_END
 
                 if is_night:
                     night_hours += 1 / 60  # 1分 = 1/60時間
@@ -362,4 +287,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()  # ルートの空ウィンドウを消す（必要なら外してOK）
     SalaryWindow(root)  # これを呼ばないと画面は出ない
+    root.mainloop()
     root.mainloop()

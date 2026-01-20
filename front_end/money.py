@@ -1,41 +1,25 @@
-import os
-import json
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from datetime import date
 
+# 共通のリクエスト送信モジュールをインポート
+from .request_handler import write_request, try_read_response
 
-def _paths():
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    req = os.path.join(base, "json", "request.json")
-    res = os.path.join(base, "json", "response.json")
-    return req, res
-
-
-def write_request(payload: dict) -> None:
-    req, _ = _paths()
-    os.makedirs(os.path.dirname(req), exist_ok=True)
-    with open(req, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-def try_read_response() -> dict | None:
-    _, res = _paths()
-    if not os.path.exists(res):
-        return None
-    try:
-        with open(res, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
+# ユーティリティのインポート
+from .utils.constants import (
+    DEFAULT_WAGE,
+    NIGHT_RATE_MULTIPLIER,
+    MONEY_WINDOW_WIDTH,
+    MONEY_WINDOW_HEIGHT,
+)
 
 
 class MoneyWindow(tk.Toplevel):
     def __init__(self, master: tk.Misc | None = None) -> None:
         super().__init__(master)
         self.title("給料（支出）モード")
-        self.geometry("480x420")
+        self.geometry(f"{MONEY_WINDOW_WIDTH}x{MONEY_WINDOW_HEIGHT}")
 
         today = date.today()
         head = ttk.Frame(self)

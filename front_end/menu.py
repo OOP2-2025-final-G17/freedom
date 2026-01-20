@@ -3,9 +3,15 @@ from tkinter import ttk
 
 
 class MainMenu(tk.Frame):
-    def __init__(self, parent: tk.Misc) -> None:
+    def __init__(self, parent: tk.Misc, calendar_widget=None) -> None:
         super().__init__(parent)
         self.pack(fill=tk.BOTH, expand=True)
+        self.calendar_widget = calendar_widget  # カレンダーウィジェットへの参照を保持
+
+        # 開いたウィンドウへの参照を保持
+        self.settings_window = None
+        self.salary_window = None
+        self.change_window = None
 
         title = ttk.Label(self, text="メニュー", font=("Helvetica", 16, "bold"))
         title.pack(pady=12)
@@ -18,10 +24,25 @@ class MainMenu(tk.Frame):
         )
         self.btn_change.pack(fill=tk.X, pady=4)
 
-        self.btn_money = ttk.Button(
-            btn_frame, text="給料（支出）モード", command=self.open_money
+        self.btn_salary = ttk.Button(
+            btn_frame, text="給料計算", command=self.open_salary
         )
-        self.btn_money.pack(fill=tk.X, pady=4)
+        self.btn_salary.pack(fill=tk.X, pady=4)
+
+        self.btn_export = ttk.Button(
+            btn_frame, text="データエクスポート", command=self.export_data
+        )
+        self.btn_export.pack(fill=tk.X, pady=4)
+
+        self.btn_import = ttk.Button(
+            btn_frame, text="データインポート", command=self.import_data
+        )
+        self.btn_import.pack(fill=tk.X, pady=4)
+
+        self.btn_settings = ttk.Button(
+            btn_frame, text="ユーザー設定", command=self.open_settings
+        )
+        self.btn_settings.pack(fill=tk.X, pady=4)
 
         self.status_var = tk.StringVar(value="準備完了。操作を選んでください。")
         status = ttk.Label(self, textvariable=self.status_var, foreground="#555")
@@ -33,12 +54,57 @@ class MainMenu(tk.Frame):
         except Exception:
             from change import ChangeWindow  # type: ignore
 
-        ChangeWindow(self.winfo_toplevel())
+        # 古いChangeWindowがあれば閉じる
+        if self.change_window and self.change_window.winfo_exists():
+            self.change_window.destroy()
+
+        self.change_window = ChangeWindow(self.winfo_toplevel())
         self.status_var.set("予定の追加/変更を開きました。")
 
-    def open_money(self):
-        from front_end.salary import SalaryWindow
-        SalaryWindow(self.master)
+    def open_salary(self):
+        try:
+            from .salary import SalaryWindow
+        except Exception:
+            from salary import SalaryWindow  # type: ignore
+
+        # 古いSalaryWindowがあれば閉じる
+        if self.salary_window and self.salary_window.winfo_exists():
+            self.salary_window.destroy()
+
+        self.salary_window = SalaryWindow(self.winfo_toplevel())
+        self.status_var.set("給料計算を開きました。")
+
+    def export_data(self) -> None:
+        """カレンダーウィンドウのエクスポート機能を呼び出す"""
+        if self.calendar_widget:
+            self.calendar_widget.export_data()
+            self.status_var.set("データエクスポートを実行しました。")
+        else:
+            self.status_var.set("カレンダーが設定されていません。")
+
+    def import_data(self) -> None:
+        """カレンダーウィンドウのインポート機能を呼び出す"""
+        if self.calendar_widget:
+            self.calendar_widget.import_data()
+            self.status_var.set("データインポートを実行しました。")
+        else:
+            self.status_var.set("カレンダーが設定されていません。")
+
+    def open_settings(self) -> None:
+        """設定ウィンドウを開く"""
+        try:
+            from .settings import SettingsWindow
+        except Exception:
+            from settings import SettingsWindow  # type: ignore
+
+        # 古いSettingsWindowがあれば閉じる
+        if self.settings_window and self.settings_window.winfo_exists():
+            self.settings_window.destroy()
+
+        self.settings_window = SettingsWindow(
+            self.winfo_toplevel(), calendar_widget=self.calendar_widget
+        )
+        self.status_var.set("ユーザー設定を開きました。")
 
 
 def main() -> None:
