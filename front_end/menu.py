@@ -8,6 +8,11 @@ class MainMenu(tk.Frame):
         self.pack(fill=tk.BOTH, expand=True)
         self.calendar_widget = calendar_widget  # カレンダーウィジェットへの参照を保持
 
+        # 開いたウィンドウへの参照を保持
+        self.settings_window = None
+        self.salary_window = None
+        self.change_window = None
+
         title = ttk.Label(self, text="メニュー", font=("Helvetica", 16, "bold"))
         title.pack(pady=12)
 
@@ -49,7 +54,11 @@ class MainMenu(tk.Frame):
         except Exception:
             from change import ChangeWindow  # type: ignore
 
-        ChangeWindow(self.winfo_toplevel())
+        # 古いChangeWindowがあれば閉じる
+        if self.change_window and self.change_window.winfo_exists():
+            self.change_window.destroy()
+
+        self.change_window = ChangeWindow(self.winfo_toplevel())
         self.status_var.set("予定の追加/変更を開きました。")
 
     def open_salary(self):
@@ -58,7 +67,11 @@ class MainMenu(tk.Frame):
         except Exception:
             from salary import SalaryWindow  # type: ignore
 
-        SalaryWindow(self.winfo_toplevel())
+        # 古いSalaryWindowがあれば閉じる
+        if self.salary_window and self.salary_window.winfo_exists():
+            self.salary_window.destroy()
+
+        self.salary_window = SalaryWindow(self.winfo_toplevel())
         self.status_var.set("給料計算を開きました。")
 
     def export_data(self) -> None:
@@ -84,7 +97,13 @@ class MainMenu(tk.Frame):
         except Exception:
             from settings import SettingsWindow  # type: ignore
 
-        SettingsWindow(self.winfo_toplevel())
+        # 古いSettingsWindowがあれば閉じる
+        if self.settings_window and self.settings_window.winfo_exists():
+            self.settings_window.destroy()
+
+        self.settings_window = SettingsWindow(
+            self.winfo_toplevel(), calendar_widget=self.calendar_widget
+        )
         self.status_var.set("ユーザー設定を開きました。")
 
 

@@ -12,10 +12,11 @@ from .utils.settings_manager import get_settings_manager
 class SettingsWindow(tk.Toplevel):
     """設定ウィンドウ"""
 
-    def __init__(self, master: tk.Misc | None = None) -> None:
+    def __init__(self, master: tk.Misc | None = None, calendar_widget=None) -> None:
         super().__init__(master)
         self.title("ユーザー設定")
         self.geometry("500x450")
+        self.calendar_widget = calendar_widget  # カレンダーウィジェットへの参照を保持
 
         # 設定マネージャーを取得
         self.settings_mgr = get_settings_manager()
@@ -176,6 +177,10 @@ class SettingsWindow(tk.Toplevel):
             self.status_var.set("設定を保存しました。")
             messagebox.showinfo("成功", "設定を保存しました。")
             self.current_settings = new_settings
+
+            # カレンダーウィジェットの表示を更新
+            if self.calendar_widget:
+                self.calendar_widget.refresh_tree_display()
         else:
             messagebox.showerror("エラー", "設定の保存に失敗しました。")
 
@@ -189,6 +194,10 @@ class SettingsWindow(tk.Toplevel):
                 self._refresh_display()
                 self.status_var.set("デフォルト設定に戻しました。")
                 messagebox.showinfo("成功", "設定をリセットしました。")
+
+                # カレンダーウィジェットの表示を更新
+                if self.calendar_widget:
+                    self.calendar_widget.refresh_tree_display()
             else:
                 messagebox.showerror("エラー", "設定のリセットに失敗しました。")
 

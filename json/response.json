@@ -44,7 +44,7 @@
       {
         "id": 5,
         "mode": "B",
-        "name": "test_wage1",
+        "name": "test11",
         "start_date": "2026-01-16",
         "start_time": "09:00",
         "end_date": "2026-01-16",
@@ -70,5 +70,5 @@
       }
     ]
   },
-  "_request_id": "9e5202ad-8076-42cd-8282-b1037cded661"
+  "_request_id": "06b653f1-6063-42ed-bdc4-ab7f417766fb"
 }

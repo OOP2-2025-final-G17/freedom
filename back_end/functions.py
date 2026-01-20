@@ -287,6 +287,12 @@ def import_schedules(payload: dict) -> dict:
     except Exception:
         pass
 
+    # 既存のデータをクリア（重複を防ぐため）
+    try:
+        Schedule.delete().execute()
+    except Exception:
+        pass
+
     imported_count = 0
     errors = []
 

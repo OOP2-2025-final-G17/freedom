@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "mode": "A",
+    "name": "f",
+    "start_date": "2026-01-08",
+    "start_time": "09:00",
+    "end_date": "2026-01-08",
+    "end_time": "18:00"
+  },
+  {
+    "id": 2,
+    "mode": "A",
+    "name": "test_update",
+    "start_date": "2026-01-15",
+    "start_time": "09:00",
+    "end_date": "2026-01-15",
+    "end_time": "18:00"
+  },
+  {
+    "id": 3,
+    "mode": "B",
+    "name": "test_b",
+    "start_date": "2026-01-15",
+    "start_time": "09:00",
+    "end_date": "2026-01-15",
+    "end_time": "18:00"
+  },
+  {
+    "id": 4,
+    "mode": "A",
+    "name": "test_add",
+    "start_date": "2026-01-15",
+    "start_time": "09:00",
+    "end_date": "2026-01-15",
+    "end_time": "18:00"
+  },
+  {
+    "id": 5,
+    "mode": "B",
+    "name": "test11",
+    "start_date": "2026-01-16",
+    "start_time": "09:00",
+    "end_date": "2026-01-16",
+    "end_time": "18:00"
+  },
+  {
+    "id": 6,
+    "mode": "B",
+    "name": "test remake",
+    "start_date": "2026-01-18",
+    "start_time": "09:00",
+    "end_date": "2026-01-18",
+    "end_time": "18:00"
+  },
+  {
+    "id": 7,
+    "mode": "B",
+    "name": "test_night",
+    "start_date": "2026-01-18",
+    "start_time": "18:00",
+    "end_date": "2026-01-19",
+    "end_time": "01:00"
+  }
+]

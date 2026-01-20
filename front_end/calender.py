@@ -342,9 +342,6 @@ class CalendarWindow(tk.Frame):
         return index
 
     def delete_selected(self) -> None:
-        if not self.selected_date:
-            messagebox.showinfo("情報", "日付を選択してください。")
-            return
         idx = self._get_selection_index()
         if idx is None:
             return
@@ -378,8 +375,11 @@ class CalendarWindow(tk.Frame):
         if resp and resp.get("ok") is True:
             self.result.insert(tk.END, "削除しました。予定を再取得しています...\n")
             self.update_idletasks()
-            # 削除成功後、予定を再取得
-            self.request_day()
+            # 削除成功後、表示モードに応じて予定を再取得
+            if self.selected_date:
+                self.request_day()
+            else:
+                self.request_month()
         elif resp and resp.get("ok") is False:
             error = resp.get("error", {})
             self.result.insert(
@@ -391,9 +391,6 @@ class CalendarWindow(tk.Frame):
             )
 
     def update_selected(self) -> None:
-        if not self.selected_date:
-            messagebox.showinfo("情報", "日付を選択してください。")
-            return
         idx = self._get_selection_index()
         if idx is None:
             return
@@ -428,8 +425,11 @@ class CalendarWindow(tk.Frame):
                 self.result.delete("1.0", tk.END)
                 self.result.insert(tk.END, "更新しました。予定を再取得しています...\n")
                 self.update_idletasks()
-                # 更新成功後、予定を再取得
-                self.request_day()
+                # 更新成功後、表示モードに応じて予定を再取得
+                if self.selected_date:
+                    self.request_day()
+                else:
+                    self.request_month()
             elif resp and resp.get("ok") is False:
                 self.result.delete("1.0", tk.END)
                 error = resp.get("error", {})
@@ -512,6 +512,22 @@ class CalendarWindow(tk.Frame):
     def import_data(self) -> None:
         """JSONファイルからスケジュールデータをインポート"""
         import_schedules(self.result, self.winfo_toplevel())
+
+    def refresh_tree_display(self) -> None:
+        """Treeview の表示を更新（設定変更時など）"""
+        # 現在のツリービューをクリア
+        self.tree.delete(*self.tree.get_children())
+
+        # 現在保持しているアイテムを再度表示
+        for sc in self.current_items:
+            mode = sc.get("mode", "-")
+            name = sc.get("name", "")
+            start = f"{sc.get('start_date','')} {sc.get('start_time','')}"
+            end = f"{sc.get('end_date','')} {sc.get('end_time','')}"
+            departure_time = self.calculate_departure_time(sc)
+            self.tree.insert(
+                "", tk.END, values=(mode, name, start, end, departure_time)
+            )
 
 
 if __name__ == "__main__":
