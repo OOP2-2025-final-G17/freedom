@@ -199,16 +199,25 @@ class CalendarWindow(tk.Frame):
                 style_name = ""
                 weekday = day.weekday()  # 0=月曜, 6=日曜
 
-                if is_today:
-                    style_name = "Today.TButton"
-                if is_selected:
-                    style_name = "Selected.TButton"
-
+                # スタイルの優先順位（後のものが優先）
+                # 1. 基本スタイル（土日の場合はその色）
                 if is_current_month:
                     if weekday == 6:  # 日曜日
                         style_name = "Sunday.TButton"
                     elif weekday == 5:  # 土曜日
                         style_name = "Saturday.TButton"
+                    else:
+                        style_name = "TButton"
+                else:
+                    style_name = "TButton"
+
+                # 2. 今日の場合は Today スタイル
+                if is_today:
+                    style_name = "Today.TButton"
+
+                # 3. 選択状態の場合は Selected スタイル（最優先）
+                if is_selected:
+                    style_name = "Selected.TButton"
 
                 # ボタンを作成
                 btn = ttk.Button(
