@@ -36,6 +36,7 @@ class CalendarWindow(tk.Frame):
         style.configure(
             "Selected.TButton", background="#ccccff"
         )  # 選択日付用（薄い青色）
+        style.configure("TButton", background="#f0f0f0")  # 通常日付用)
 
         # ラベル用スタイル
         style.configure("Saturday.TLabel", foreground="blue")
@@ -458,27 +459,6 @@ class CalendarWindow(tk.Frame):
             self.result.insert(
                 tk.END, "タイムアウト: バックエンドからの応答がありませんでした。\n"
             )
-
-    def export_data(self) -> None:
-        """全ての予定をJSONファイルにエクスポート"""
-        export_schedules(self.result, self.master)
-
-    def import_data(self) -> None:
-        """JSONファイルから予定をインポート"""
-
-        def on_import_success():
-            self.result.delete("1.0", tk.END)
-            self.result.insert(tk.END, "インポート完了。予定を再取得しています...\n")
-            self.update_idletasks()
-            # 現在表示中の日付/月を再取得
-            if self.selected_date:
-                self.request_day()
-            else:
-                self.request_month()
-
-        import_schedules(
-            self.result, self.master, on_success_callback=on_import_success
-        )
 
 
 if __name__ == "__main__":
