@@ -172,7 +172,7 @@ Python 3.8以上
 
 #### リポジトリをクローン
 
-git clone [リポジトリURL]
+git clone [(https://itcait-my.sharepoint.com/:v:/g/personal/k24073kk_aitech_ac_jp/IQDXZu3oKLF8TpEM5h5gNAOoAdWlEvp6qJdn1tNngKXhwB0?e=qv9t9R)]
 
 #### 依存パッケージのインストール（必要な場合）
 
