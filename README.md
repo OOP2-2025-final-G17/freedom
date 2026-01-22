@@ -205,6 +205,31 @@ python main.py
 
 #### セットアップ・実行方法
 
+<<<<<<< HEAD
+=======
+必要な環境
+Python 3.13.7以上
+必要なパッケージ: peewee, tkinter（標準ライブラリ）
+
+# インストール方法
+
+#### リポジトリをクローン
+
+   - git clone [(https://itcait-my.sharepoint.com/:v:/g/personal/k24073kk_aitech_ac_jp/IQDXZu3oKLF8TpEM5h5gNAOoAdWlEvp6qJdn1tNngKXhwB0?e=qv9t9R)]
+
+#### 依存パッケージのインストール（必要な場合）
+
+pip install peewee
+
+# 実行方法
+
+#### アプリケーションを起動
+
+python main.py
+
+### 
+
+>>>>>>> 739918ae50151439a864cc33d49aa0554b05b80e
 # ディレクトリ構造
 
 ```
